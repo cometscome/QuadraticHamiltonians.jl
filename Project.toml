@@ -4,7 +4,11 @@ authors = ["cometscome <cometscome@gmail.com> and contributors"]
 version = "0.0.1"
 
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+KrylovKit = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+SparseIR = "4fe2279e-80f0-4adb-8463-ee114ff56b7d"
 
 [compat]
 julia = "1"

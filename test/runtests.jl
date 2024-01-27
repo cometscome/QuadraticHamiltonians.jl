@@ -1,8 +1,16 @@
 using QuadraticHamiltonians
 using Test
+using LinearAlgebra
+using BenchmarkTools
+using KrylovKit
 
 function test2()
-    N = 16
+    #T = 0.1
+    #rscg = RSCGSolver(T)
+    #return
+
+
+    N = 32 * 2
     ham = Hamiltonian(N)
     t = -1
     for i = 1:N
@@ -18,9 +26,26 @@ function test2()
         cj = FermionOP(j)
         ham += t * ci' * cj
     end
+
+    x = rand(N)
+    vals, vecs, info = eigsolve(ham, x, 1, :SR, ishermitian=true)
+    println(vals)
+    return
+
     display(ham)
     ham_matrix = construct_matrix(ham)
     display(ham_matrix)
+
+    x = rand(N)
+    y = zero(x)
+
+    @btime mul!($y, $ham, $x)
+    println(sum(x))
+
+    println("matrix")
+    @btime mul!($y, $ham_matrix, $x)
+    println(sum(x))
+
 end
 
 function test()

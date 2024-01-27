@@ -3,6 +3,11 @@ export QuadraticOPs, FermionOP, Hamiltonian,
     construct_matrix
 # Write your package code here.
 
+include("RSCGSolver.jl")
+using .Mod_RSCGSolver
+import .Mod_RSCGSolver: RSCGSolver
+export RSCGSolver
+
 
 struct FermionOP{T}
     site::Int64
@@ -149,12 +154,14 @@ end
 
 using SparseArrays
 
-struct Hamiltonian{T}
+struct Hamiltonian{T,N} <: AbstractMatrix{T}
     qoperators::QuadraticOPs{T}
     isSC::Bool
     num_internal_degree::Int64
     num_sites::Int64
 end
+
+Base.size(h::Hamiltonian{T,N}) where {T,N} = N
 
 function Hamiltonian(num_sites; num_internal_degree=1, isSC=false)
     Hamiltonian(Float64, num_sites; num_internal_degree, isSC)
@@ -162,12 +169,54 @@ end
 
 function Hamiltonian(T::DataType, num_sites; num_internal_degree=1, isSC=false)
     qoperators = QuadraticOPs(T)
-    return Hamiltonian{T}(qoperators, isSC, num_internal_degree, num_sites)
+    N = num_sites * num_internal_degree
+    return Hamiltonian{T,N}(qoperators, isSC, num_internal_degree, num_sites)
 end
 
-function Base.:+(h::Hamiltonian{T1}, term::QuadraticOPs{T2}) where {T1,T2}
+function Base.:+(h::Hamiltonian{T1,N}, term::QuadraticOPs{T2}) where {T1,T2,N}
     qoperators = h.qoperators + term
-    Hamiltonian{T1}(qoperators, h.isSC, h.num_internal_degree, h.num_sites)
+    Hamiltonian{T1,N}(qoperators, h.isSC, h.num_internal_degree, h.num_sites)
+end
+
+using LinearAlgebra
+
+function Base.:*(A::Hamiltonian{T,N}, x::AbstractVector) where {T,N}
+    y = zero(x)
+    mul!(y, A, x)
+    return y
+end
+
+#mul!(Y, A, B) -> Y
+function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,N}, x::AbstractVector) where {T,N}
+    y .= 0
+    #N = A.num_internal_degree * A.num_sites
+    h = A.qoperators
+    @inbounds for (i, operator) in enumerate(h.operators)
+        c1 = operator[1]
+        c2 = operator[2]
+        ii = (c1.site - 1) * A.num_internal_degree + c1.internal_index
+        jj = (c2.site - 1) * A.num_internal_degree + c2.internal_index
+        #ii += ifelse(c1.is_annihilation_operator, N, 0)
+        #jj += ifelse(c2.is_annihilation_operator, 0, N)
+        y[ii] += h.values[i] * x[jj]
+    end
+end
+
+#  mul!(C, A, B, α, β) -> C
+#A B α + C β
+function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,N}, x::AbstractVector, α, β) where {T,N}
+    y .*= β
+    #N = A.num_internal_degree * A.num_sites
+    h = A.qoperators
+    @inbounds for (i, operator) in enumerate(h.operators)
+        c1 = operator[1]
+        c2 = operator[2]
+        ii = (c1.site - 1) * A.num_internal_degree + c1.internal_index
+        jj = (c2.site - 1) * A.num_internal_degree + c2.internal_index
+        #ii += ifelse(c1.is_annihilation_operator, N, 0)
+        #jj += ifelse(c2.is_annihilation_operator, 0, N)
+        y[ii] += α * h.values[i] * x[jj]
+    end
 end
 
 function Base.display(h::Hamiltonian)
@@ -183,8 +232,17 @@ function Base.display(h::Hamiltonian)
     println("---------------------------------")
 end
 
-function construct_matrix(ham::Hamiltonian{T}) where {T}
-    N = ham.num_internal_degree * ham.num_sites
+function check(ham::Hamiltonian{T,N}) where {T,N}
+    for (i, operator) in enumerate(h.operators)
+        c1 = operator[1]
+        c2 = operator[2]
+        ii = (c1.site - 1) * ham.num_internal_degree + c1.internal_index
+        jj = (c2.site - 1) * ham.num_internal_degree + c2.internal_index
+        @assert !c1.is_annihilation_operator && c2.is_annihilation_operator "$i -th term is not C^+ C form: $c1 $c2"
+    end
+end
+
+function construct_matrix(ham::Hamiltonian{T,N}) where {T,N}
     h = ham.qoperators
     if ham.isSC
         ham_matrix = spzeros(T, 2N, 2N)
@@ -198,20 +256,20 @@ function construct_matrix(ham::Hamiltonian{T}) where {T}
         ii = (c1.site - 1) * ham.num_internal_degree + c1.internal_index
         jj = (c2.site - 1) * ham.num_internal_degree + c2.internal_index
 
-        if ham.isSC
-            ii += ifelse(c1.is_annihilation_operator, N, 0)
-            jj += ifelse(c1.is_annihilation_operator, 0, N)
-            ham_matrix[ii, jj] += h.values[i]
-        else
-            @assert !c1.is_annihilation_operator && c2.is_annihilation_operator "This is not C^+ C form $c1 $c2"
-            ham_matrix[ii, jj] += h.values[i]
-        end
+        #if ham.isSC
+        ii += ifelse(c1.is_annihilation_operator, N, 0)
+        jj += ifelse(c2.is_annihilation_operator, 0, N)
+        #    ham_matrix[ii, jj] += h.values[i]
+        #else
+        #@assert !c1.is_annihilation_operator && c2.is_annihilation_operator "This is not C^+ C form $c1 $c2"
+        ham_matrix[ii, jj] += h.values[i]
+        #end
     end
     return ham_matrix
 end
 
 
-struct SCgap{T}
+struct SCgap{T,N} <: AbstractMatrix{T}
     qoperators::QuadraticOPs{T}
     num_internal_degree::Int64
     num_sites::Int64
@@ -223,12 +281,13 @@ end
 
 function SCgap(T::DataType, num_sites; num_internal_degree=1)
     qoperators = QuadraticOPs(T)
-    return SCgap{T}(qoperators, num_internal_degree, num_sites)
+    N = num_internal_degree * num_sites
+    return SCgap{T,N}(qoperators, num_internal_degree, num_sites)
 end
 
-function Base.:+(h::SCgap{T1}, term::QuadraticOPs{T2}) where {T1,T2}
+function Base.:+(h::SCgap{T1,N}, term::QuadraticOPs{T2}) where {T1,T2,N}
     qoperators = h.qoperators + term
-    SCgap{T1}(qoperators, h.num_internal_degree, h.num_sites)
+    SCgap{T1,N}(qoperators, h.num_internal_degree, h.num_sites)
 end
 
 function Base.display(h::SCgap)
@@ -242,8 +301,8 @@ function Base.display(h::SCgap)
 end
 
 
-function construct_matrix(ham::SCgap{T}) where {T}
-    N = ham.num_internal_degree * ham.num_sites
+function construct_matrix(ham::SCgap{T,N}) where {T,N}
+    #N = ham.num_internal_degree * ham.num_sites
     h = ham.qoperators
 
     ham_matrix = spzeros(T, N, N)
