@@ -121,13 +121,13 @@ function Base.display(h::QuadraticOPs)
         #println(c1)
         cname1 = "C"
         cname1 *= "_{$(c1.site),$(c1.internal_index)}"
-        cname1 *= ifelse(c1.is_annihilation_operator, "^+", "")
+        cname1 *= ifelse(!c1.is_annihilation_operator, "^+", "")
 
 
         c2 = operator[2]
         cname2 = "C"
         cname2 *= "_{$(c2.site),$(c2.internal_index)}"
-        cname2 *= ifelse(c2.is_annihilation_operator, "^+", "")
+        cname2 *= ifelse(!c2.is_annihilation_operator, "^+", "")
 
         value = h.values[i]
         if value == 1
