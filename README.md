@@ -7,6 +7,10 @@
 
 This is an alpha version. 
 
+```
+add https://github.com/cometscome/QuadraticHamiltonians.jl
+```
+
 ```julia
 function test2()
     N = 16
