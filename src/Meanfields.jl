@@ -5,16 +5,34 @@ struct Meanfields_solver{M,H}
     hamiltonian::H
 end
 
-function Meanfields_solver(ham::Hamiltonian, T, ; method="RSCG", kargs...)
+function Meanfields_solver(ham::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, T, ; method="RSCG", kargs...) where {T1,N,isSC,num_internal_degree,num_sites}
     if method == "RSCG"
         rscg = RSCGSolver(T; kargs...)
         return Meanfields_solver{typeof(rscg),typeof(ham)}(rscg, ham)
+    elseif method == "Chebyshev"
+        if :aa in keys(kargs)
+            aa = values(kargs).aa
+        else
+            aa = 10.0
+        end
+        if :bb in keys(kargs)
+            bb = values(kargs).bb
+        else
+            bb = 0.0
+        end
+        cheby = ChebyshevSolver(T, aa, bb; kargs...)
+        hamt = deepcopy(ham)
+        for i = 1:N
+            hamt.matrix[i, i] -= bb
+        end
+        hamt.matrix ./= aa
+        return Meanfields_solver{typeof(cheby),typeof(ham)}(cheby, hamt)
     else
         error("method $method is not supported yet")
     end
 end
 
-function calc_meanfields(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}, c1::FermionOP, c2::FermionOP) where {M<:RSCGSolver,T,N,isSC,
+function calc_meanfields(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}, c1::FermionOP, c2::FermionOP) where {M,T,N,isSC,
     num_internal_degree,num_sites}
     ham = m.hamiltonian
     ii = (c1.site - 1) * num_internal_degree + c1.internal_index
@@ -30,7 +48,7 @@ function calc_meanfields(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_interna
     return Gij0
 end
 
-function calc_meanfields(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}, i, j) where {M<:RSCGSolver,T,N,isSC,
+function calc_meanfields(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}, i, j) where {M,T,N,isSC,
     num_internal_degree,num_sites}
     Gij0 = solve(m.method, m.hamiltonian, i, j)
     return Gij0

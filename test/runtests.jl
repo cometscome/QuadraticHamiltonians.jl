@@ -6,6 +6,83 @@ using KrylovKit
 using SparseArrays
 using InteractiveUtils
 
+function test5()
+
+    μ = -1.5
+    Δ = 0.5
+
+    Nx = 16 * 4 * 2
+    Ny = 16 * 4 * 2
+    N = Nx * Ny
+    Δ = 0.5
+    ham = Hamiltonian(N, isSC=true)
+    t = -1
+    for ix = 1:Nx
+        for iy = 1:Ny
+            i = (iy - 1) * Nx + ix
+            ci = FermionOP(i)
+
+            jx = ix + 1
+            jx += ifelse(jx > Nx, -Nx, 0)
+            jy = iy
+            j = (jy - 1) * Nx + jx
+            cj = FermionOP(j)
+            ham += t * (ci' * cj - ci * cj')
+
+
+            jx = ix - 1
+            jx += ifelse(jx < 1, Nx, 0)
+            jy = iy
+            j = (jy - 1) * Nx + jx
+            cj = FermionOP(j)
+            ham += t * (ci' * cj - ci * cj')
+
+
+            jy = iy + 1
+            jy += ifelse(jy > Ny, -Ny, 0)
+            jx = ix
+            j = (jy - 1) * Nx + jx
+            cj = FermionOP(j)
+            ham += t * (ci' * cj - ci * cj')
+
+
+            jy = iy - 1
+            jy += ifelse(jy < 1, Ny, 0)
+            jx = ix
+            j = (jy - 1) * Nx + jx
+            cj = FermionOP(j)
+            ham += t * (ci' * cj - ci * cj')
+
+
+            j = i
+            cj = FermionOP(j)
+            ham += -μ * (ci' * cj - ci * cj')
+
+
+            ham += Δ * ci' * cj' + Δ * ci * cj
+
+        end
+    end
+
+
+    T = 0.1
+    m = Meanfields_solver(ham, T, method="Chebyshev", nmax=200)
+    m2 = Meanfields_solver(ham, T)
+    c1up = FermionOP(1, 1)
+    c1down = FermionOP(1, 2)
+    Gij0 = calc_meanfields(m, c1up, c1down) #<c1up c1down>
+    @btime calc_meanfields($m, $c1up, $c1down) #<c1up c1down>
+    println("Chebyshev: ", Gij0)
+    Gij0 = calc_meanfields(m2, c1up, c1down) #<c1up c1down>
+    @btime calc_meanfields($m2, $c1up, $c1down) #<c1up c1down>
+    println("RSCG ", Gij0)
+
+    m3 = Meanfields_solver(ham, T, method="Chebyshev", isLK=true, nmax=200)
+    Gij0 = calc_meanfields(m3, c1up, c1down) #<c1up c1down>
+    @btime calc_meanfields($m3, $c1up, $c1down) #<c1up c1down>
+    println("Chebyshev: ", Gij0)
+end
+
 function test4()
     μ = -1.5
     N = 16
@@ -247,5 +324,6 @@ end
     #test()
     #test2()
     #test3()
-    test4()
+    ##test4()
+    test5()
 end

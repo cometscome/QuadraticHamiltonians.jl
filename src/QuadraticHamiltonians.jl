@@ -300,7 +300,7 @@ end
 
 #  mul!(C, A, B, α, β) -> C
 #A B α + C β
-function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,N,true,num_internal_degree,num_sites}, x::AbstractVector, α, β) where {T,N,num_internal_degree,num_sites}
+function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,N,true,num_internal_degree,num_sites}, x::AbstractVector, α::Number, β::Number) where {T,N,num_internal_degree,num_sites}
     mul!(y, A.matrix, x, α, β)
 
 end
@@ -487,6 +487,9 @@ end
 
 include("RSCGSolver.jl")
 export RSCGSolver, solve
+
+include("ChebyshevSolver.jl")
+export ChebyshevSolver
 
 include("Meanfields.jl")
 export Meanfields_solver
