@@ -6,6 +6,65 @@ using KrylovKit
 using SparseArrays
 using InteractiveUtils
 
+function test4()
+    μ = -1.5
+    N = 16
+    Δ = 0.5
+    ham = Hamiltonian(N, num_internal_degree=2, isSC=true)
+    hops = [+1, -1]
+    Δ = 0.5
+    for i = 1:N
+        for ispin = 1:2
+            ci = FermionOP(i, ispin)
+            for d in hops
+                j = i + d
+                j += ifelse(j > N, -N, 0)
+                j += ifelse(j < 1, N, 0)
+                jspin = ispin
+                cj = FermionOP(j, jspin)
+                ham += -1 * (ci' * cj - ci * cj')
+            end
+            ham += -μ * (ci' * ci - ci * ci')
+        end
+        ciup = FermionOP(i, 1)
+        cidown = FermionOP(i, 2)
+        ham += Δ * ciup' * cidown' + Δ * cidown * ciup
+        ham += -Δ * cidown' * ciup' - Δ * ciup * cidown
+    end
+    T = 0.1
+    m = Meanfields_solver(ham, T)
+    c1up = FermionOP(1, 1)
+    c1down = FermionOP(1, 2)
+    Gij0 = calc_meanfields(m, c1up, c1down) #<c1up c1down>
+    println(Gij0)
+end
+
+function test3()
+    μ = -1.5
+    N = 16
+    Δ = 0.5
+    ham = Hamiltonian(N, isSC=true)
+    hops = [+1, -1]
+    Δ = 0.5
+    for i = 1:N
+        ci = FermionOP(i)
+        for d in hops
+            j = i + d
+            j += ifelse(j > N, -N, 0)
+            j += ifelse(j < 1, N, 0)
+            cj = FermionOP(j)
+            ham += -1 * (ci' * cj - ci * cj')
+        end
+        ham += -μ * (ci' * ci - ci * ci')
+        ham += Δ * ci' * ci' + Δ * ci * ci
+    end
+    T = 0.1
+    m = Meanfields_solver(ham, T)
+    c1 = FermionOP(1)
+    Gij0 = calc_meanfields(m, c1, c1) #<c1 c1>
+    println(Gij0)
+end
+
 function test2()
     T = 0.1
     μ = -1.5
@@ -172,5 +231,7 @@ end
 @testset "QuadraticHamiltonians.jl" begin
     # Write your tests here.
     #test()
-    test2()
+    #test2()
+    #test3()
+    test4()
 end
