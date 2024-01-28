@@ -53,7 +53,7 @@ H = -1.0C_{1,1}^+C_{2,1} -1.0C_{1,1}^+C_{16,1} -1.0C_{2,1}^+C_{3,1} -1.0C_{2,1}^
 ⎣⡀⠀⠀⠀⠀⠈⠪⡢⎦
 ```
 
-# Exammples
+# Examples
 
 ## s-wave superconductor
 
@@ -139,6 +139,9 @@ The solver is the Chebyshev polynomial method
   20.113 ms (42 allocations: 2.13 MiB)
 Chebyshev with LKvectors: -0.17611751734430567
 ```
+
+![ldos](https://github.com/cometscome/QuadraticHamiltonians.jl/assets/21115243/bde82aa4-0506-4d9e-8742-19dd61706b76)
+
 
 
 ## s-wave superconductor with spins
@@ -232,3 +235,5 @@ The solver is the Chebyshev polynomial method
   21.877 ms (42 allocations: 4.25 MiB)
 Chebyshev with LKvectors: 0.1761175173443056
 ```
+
+![ldos_spin](https://github.com/cometscome/QuadraticHamiltonians.jl/assets/21115243/bd19da9d-ab50-42bc-99df-bf0bed5d888d)
