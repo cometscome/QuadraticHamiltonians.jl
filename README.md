@@ -8,7 +8,7 @@
 This is an alpha version. 
 
 This calculates meanfields of the Hamiltonian with quadratic terms in superconductors. 
-With the use of this package, you do not have to consider a matrix of the Hamiltonian. To construct the Hamiltonian, just add the operators. 
+With the use of this package, you do not have to think about a matrix of the Hamiltonian that you want to consider. To construct the Hamiltonian, just add the operators. 
 
 
 We implemented two kinds of methods. 
