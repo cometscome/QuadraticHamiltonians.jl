@@ -29,7 +29,8 @@ or
 ```math
 \hat{H}_{\rm BdG} \equiv \sum_{i j} \sum_{\alpha \beta} H_{ij} c_{i \alpha}^{\dagger} c_{j \beta} + \sum_{i j} \sum_{\alpha \beta} \bar{H}_{ij} c_{i \alpha} c_{j \beta}^{\dagger} + + \sum_{i j} \sum_{\alpha \beta} \Delta_{ij} c_{i \alpha}^{\dagger} c_{j \beta}^{\dagger} +  \sum_{i j} \sum_{\alpha \beta} \bar{\Delta}_{ij} c_{i \alpha} c_{j \beta} 
 ```
-if the keyword ```isSC``` is ```true```. If you want to consider a superconducting BdG Hamiltonian, you need the relations:
+if the keyword ```isSC``` is ```true```. Here $i$ and $j$ are indices of real-space grid and $\alpha$ and $\beta$ are indices of internal degree of freedom (like spins,orbitals or bands). 
+If you want to consider a superconducting BdG Hamiltonian, you need the relations:
 ```math
 \begin{align}
 \bar{H}_{ij} &= - H_{ij}^{\ast}, \\
