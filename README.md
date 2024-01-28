@@ -21,6 +21,10 @@ And also we implemented the following method:
  
 Please note that this is an alpha version. 
 
+Now this package can calculate 
+- 1. Meanfields defined as $\langle c_i^{\dagger} c_j \rangle$, $\langle c_i^{\dagger} c_j^{\dagger} \rangle$ , $\langle c_i c_j^{\dagger} \rangle$ and $\langle c_i c_j \rangle$.
+- 2. Greenfunctions defined as $G_{ij}(z) \equiv \langle c_i^{\dagger} [z \hat{I} - \hat{H}]^{-1} c_j \rangle = \left[ [z \hat{I} - \hat{H}]^{-1} \right]_{ij}$. 
+
 ```
 add https://github.com/cometscome/QuadraticHamiltonians.jl
 ```
