@@ -1,4 +1,5 @@
-module Mod_RSCGSolver
+
+using RSCG
 using SparseIR
 import SparseIR: valueim
 export RSCGSolver
@@ -7,7 +8,8 @@ struct RSCGSolver{T1,T2}
     T::Float64 #temperature
     wmax::Float64
     smpl_beta::T1
-    smpl::T2
+    smpl_Matsubara::T2
+    ωn_s::Vector{ComplexF64}
 end
 
 function RSCGSolver(T; kargs...)#wmax=10.0)
@@ -23,7 +25,7 @@ function RSCGSolver(T; kargs...)#wmax=10.0)
     ωn_s = valueim.(smpl.sampling_points, beta)
     println("num. of Matsubara freqs. ", length(ωn_s))
     smpl_beta = TauSampling(basis; sampling_points=[beta])
-    return RSCGSolver{typeof(smpl_beta),typeof(smpl)}(T, wmax, smpl_beta, smpl)
+    return RSCGSolver{typeof(smpl_beta),typeof(smpl)}(T, wmax, smpl_beta, smpl, ωn_s)
 end
 
 function fit_ir(rscg::RSCGSolver, Gij)
@@ -36,4 +38,9 @@ function fit_ir(Gij, smpl_Matsubara, smpl_beta)
     return -G0[1]
 end
 
+function solve(rscg::RSCGSolver, A, i, j)
+    #println(rscg.ωn_s)
+    Gij = greensfunctions(i, j, rscg.ωn_s, A)
+    Gij0 = fit_ir(Gij, rscg.smpl_Matsubara, rscg.smpl_beta)
+    return Gij0
 end
