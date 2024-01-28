@@ -29,15 +29,30 @@ or
 ```math
 \hat{H}_{\rm BdG} \equiv \sum_{i j} \sum_{\alpha \beta} H_{ij} c_{i \alpha}^{\dagger} c_{j \beta} + \sum_{i j} \sum_{\alpha \beta} \bar{H}_{ij} c_{i \alpha} c_{j \beta}^{\dagger} + \sum_{i j} + \sum_{i j} \sum_{\alpha \beta} \Delta_{ij} c_{i \alpha}^{\dagger} c_{j \beta}^{\dagger} + \sum_{\alpha \beta} \bar{\Delta}_{ij} c_{i \alpha} c_{j \beta} 
 ```
-if the keyword ```isSC``` is ```true```. If you want to consider a superconducting BdG Hamiltonian, you need the relation $\bar{H}_{ij}= - H_{ij}^{\ast}$ and $\bar{\Delta}_{ij} = \Delta_{ji}^{\ast}$
+if the keyword ```isSC``` is ```true```. If you want to consider a superconducting BdG Hamiltonian, you need the relations:
+```math
+\begin{align}
+\bar{H}_{ij} &= - H_{ij}^{\ast}, \\
+\bar{\Delta}_{ij} &= \Delta_{ji}^{\ast}.
+\end{align}
+``` 
 
-Now this package can calculate 
--  Meanfields defined as $\langle c_i^{\dagger} c_j \rangle$, $\langle c_i^{\dagger} c_j^{\dagger} \rangle$ , $\langle c_i c_j^{\dagger} \rangle$ and $\langle c_i c_j \rangle$.
--  Greenfunctions defined as $G_{ij}(z) \equiv \langle c_i^{\dagger} [z \hat{I} - \hat{H}]^{-1} c_j \rangle = \left[ [z \hat{I} - \hat{H}]^{-1} \right]_{ij}$. 
+Now this package can 
+- construct the matrix of the Hamiltonian.
+- display the creation and anihilation operators in the Hamiltonian.
+-  calculate meanfields defined as $\langle c_i^{\dagger} c_j \rangle$, $\langle c_i^{\dagger} c_j^{\dagger} \rangle$ , $\langle c_i c_j^{\dagger} \rangle$ and $\langle c_i c_j \rangle$. You can choose the Chebyshev polynomial method or RSCG method for calculating meanfields.  Now only a Hermitian Hamiltonian is supported. 
+-  calculate greenfunctions defined as $G_{ij}(z) \equiv \langle c_i^{\dagger} [z \hat{I} - \hat{H}]^{-1} c_j \rangle = \left[ [z \hat{I} - \hat{H}]^{-1} \right]_{ij}$. Here $z$ is a complex frequency. Now only a Hermitian Hamiltonian is supported. 
 
+
+# Install
 ```
 add https://github.com/cometscome/QuadraticHamiltonians.jl
 ```
+# How to use
+
+## Generate a matrix form 
+
+
 
 ```julia
 using QuadraticHamiltonians
