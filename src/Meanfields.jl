@@ -7,9 +7,11 @@ end
 
 function Meanfields_solver(ham::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, T, ; method="RSCG", kargs...) where {T1,N,isSC,num_internal_degree,num_sites}
     if method == "RSCG"
+        println("The solver is the RSCG")
         rscg = RSCGSolver(T; kargs...)
         return Meanfields_solver{typeof(rscg),typeof(ham)}(rscg, ham)
     elseif method == "Chebyshev"
+        println("The solver is the Chebyshev polynomial method")
         if :aa in keys(kargs)
             aa = values(kargs).aa
         else

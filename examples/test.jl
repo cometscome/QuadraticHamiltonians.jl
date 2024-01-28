@@ -1,63 +1,3 @@
-# QuadraticHamiltonians
-
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://cometscome.github.io/QuadraticHamiltonians.jl/stable/)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://cometscome.github.io/QuadraticHamiltonians.jl/dev/)
-[![Build Status](https://github.com/cometscome/QuadraticHamiltonians.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/cometscome/QuadraticHamiltonians.jl/actions/workflows/CI.yml?query=branch%3Amain)
-
-
-This is an alpha version. 
-
-```
-add https://github.com/cometscome/QuadraticHamiltonians.jl
-```
-
-```julia
-function test2()
-    N = 16
-    ham = Hamiltonian(N)
-    t = -1
-    for i = 1:N
-        ci = FermionOP(i)
-        j = i + 1
-        j += ifelse(j > N, -N, 0)
-        cj = FermionOP(j)
-        ham += t * ci' * cj
-
-        j = i - 1
-        j += ifelse(j < 1, N, 0)
-
-        cj = FermionOP(j)
-        ham += t * ci' * cj
-    end
-    display(ham)
-    ham_matrix = construct_matrix(ham)
-    display(ham_matrix)
-end
-test2()
-
-```
-
-The output is 
-
-```
----------------------------------
-Hamiltonian: 
-Num. of sites: 16
-Num. of internal degree of freedom: 1
-H = -1.0C_{1,1}^+C_{2,1} -1.0C_{1,1}^+C_{16,1} -1.0C_{2,1}^+C_{3,1} -1.0C_{2,1}^+C_{1,1} -1.0C_{3,1}^+C_{4,1} -1.0C_{3,1}^+C_{2,1} -1.0C_{4,1}^+C_{5,1} -1.0C_{4,1}^+C_{3,1} -1.0C_{5,1}^+C_{6,1} -1.0C_{5,1}^+C_{4,1} -1.0C_{6,1}^+C_{7,1} -1.0C_{6,1}^+C_{5,1} -1.0C_{7,1}^+C_{8,1} -1.0C_{7,1}^+C_{6,1} -1.0C_{8,1}^+C_{9,1} -1.0C_{8,1}^+C_{7,1} -1.0C_{9,1}^+C_{10,1} -1.0C_{9,1}^+C_{8,1} -1.0C_{10,1}^+C_{11,1} -1.0C_{10,1}^+C_{9,1} -1.0C_{11,1}^+C_{12,1} -1.0C_{11,1}^+C_{10,1} -1.0C_{12,1}^+C_{13,1} -1.0C_{12,1}^+C_{11,1} -1.0C_{13,1}^+C_{14,1} -1.0C_{13,1}^+C_{12,1} -1.0C_{14,1}^+C_{15,1} -1.0C_{14,1}^+C_{13,1} -1.0C_{15,1}^+C_{16,1} -1.0C_{15,1}^+C_{14,1} -1.0C_{16,1}^+C_{1,1} -1.0C_{16,1}^+C_{15,1} 
----------------------------------
-16×16 SparseArrays.SparseMatrixCSC{Float64, Int64} with 32 stored entries:
-⎡⠪⡢⡀⠀⠀⠀⠀⠈⎤
-⎢⠀⠈⠪⡢⡀⠀⠀⠀⎥
-⎢⠀⠀⠀⠈⠪⡢⡀⠀⎥
-⎣⡀⠀⠀⠀⠀⠈⠪⡢⎦
-```
-
-# Exammples
-
-## s-wave superconductor
-
-```julia
 using QuadraticHamiltonians
 using Plots
 using BenchmarkTools
@@ -124,29 +64,8 @@ function main()
     println("Chebyshev with LKvectors: ", Gij0)
 
 end
-```
-
-The output is 
-```
-The solver is the Chebyshev polynomial method
-  27.004 ms (10 allocations: 1.00 MiB)
-Chebyshev: -0.1761175169590693
-The solver is the RSCG
-num. of Matsubara freqs. 24
-  33.507 ms (6412 allocations: 37.76 MiB)
-RSCG -0.17610594510770422 - 4.9649942910811176e-15im
-The solver is the Chebyshev polynomial method
-  20.113 ms (42 allocations: 2.13 MiB)
-Chebyshev with LKvectors: -0.17611751734430567
-```
 
 
-## s-wave superconductor with spins
-
-```julia
-using QuadraticHamiltonians
-using Plots
-using BenchmarkTools
 function main2()
     μ = -1.5
     Nx = 128
@@ -215,20 +134,7 @@ function main2()
     @btime calc_meanfields($m3, $c1up, $c1down) #<c1up c1down>
     println("Chebyshev with LKvectors: ", Gij0)
 
-end
-main2()
-```
 
-The output is 
-```
-The solver is the Chebyshev polynomial method
-  49.120 ms (10 allocations: 2.00 MiB)
-Chebyshev: 0.1761175169590693
-The solver is the RSCG
-num. of Matsubara freqs. 24
-  63.067 ms (6412 allocations: 75.01 MiB)
-RSCG 0.17610594510770403 + 4.955324870183428e-15im
-The solver is the Chebyshev polynomial method
-  21.877 ms (42 allocations: 4.25 MiB)
-Chebyshev with LKvectors: 0.1761175173443056
-```
+end
+main()
+main2()
