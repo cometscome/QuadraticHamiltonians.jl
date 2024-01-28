@@ -21,6 +21,15 @@ And also we implemented the following method:
  
 Please note that this is an alpha version. 
 
+We consider the Hamiltonian only with quadratic form terms.
+```math
+\hat{H} \equiv \sum_{i j} \sum_{\alpha \beta} H_{ij} c_{i \alpha}^{\dagger} c_{j \beta}
+```
+or
+```math
+\hat{H}_{\rm BdG} \equiv \sum_{i j} \sum_{\alpha \beta} H_{ij} c_{i \alpha}^{\dagger} c_{j \beta} + \sum_{i j} \sum_{\alpha \beta} \bar{H}_{ij} c_{i \alpha} c_{j \beta}^{\dagger} + \sum_{i j} + \sum_{i j} \sum_{\alpha \beta} \Delta_{ij} c_{i \alpha}^{\dagger} c_{j \beta}^{\dagger} + \sum_{\alpha \beta} \bar{\Delta}_{ij} c_{i \alpha} c_{j \beta} 
+```
+
 Now this package can calculate 
 -  Meanfields defined as $\langle c_i^{\dagger} c_j \rangle$, $\langle c_i^{\dagger} c_j^{\dagger} \rangle$ , $\langle c_i c_j^{\dagger} \rangle$ and $\langle c_i c_j \rangle$.
 -  Greenfunctions defined as $G_{ij}(z) \equiv \langle c_i^{\dagger} [z \hat{I} - \hat{H}]^{-1} c_j \rangle = \left[ [z \hat{I} - \hat{H}]^{-1} \right]_{ij}$. 
