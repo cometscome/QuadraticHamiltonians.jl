@@ -5,9 +5,9 @@ using BenchmarkTools
 using KrylovKit
 
 function test2()
-    #T = 0.1
-    #rscg = RSCGSolver(T)
-    #return
+    T = 0.1
+    rscg = RSCGSolver(T)
+
 
 
     N = 32 * 2
@@ -26,6 +26,9 @@ function test2()
         cj = FermionOP(j)
         ham += t * ci' * cj
     end
+
+    m = Meanfields_solver(ham, T, wmax=12.0)
+    return
 
     x = rand(N)
     vals, vecs, info = eigsolve(ham, x, 1, :SR, ishermitian=true)

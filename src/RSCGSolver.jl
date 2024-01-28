@@ -10,8 +10,14 @@ struct RSCGSolver{T1,T2}
     smpl::T2
 end
 
-function RSCGSolver(T; wmax=10.0)
+function RSCGSolver(T; kargs...)#wmax=10.0)
     beta = 1 / T
+    if :wmax in keys(kargs)
+        wmax = values(kargs).wmax
+    else
+        wmax = 10.0
+    end
+
     basis = FiniteTempBasis(Fermionic(), beta, wmax, 1e-7)
     smpl = MatsubaraSampling(basis)
     ωn_s = valueim.(smpl.sampling_points, beta)

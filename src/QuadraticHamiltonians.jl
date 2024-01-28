@@ -4,6 +4,7 @@ export QuadraticOPs, FermionOP, Hamiltonian,
 # Write your package code here.
 
 include("RSCGSolver.jl")
+
 using .Mod_RSCGSolver
 import .Mod_RSCGSolver: RSCGSolver
 export RSCGSolver
@@ -318,6 +319,7 @@ function construct_matrix(ham::SCgap{T,N}) where {T,N}
     return ham_matrix
 end
 
-
+include("Meanfields.jl")
+export Meanfields_solver
 
 end
