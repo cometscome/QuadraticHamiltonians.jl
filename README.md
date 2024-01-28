@@ -1,4 +1,4 @@
-# QuadraticHamiltonians
+# QuadraticHamiltonians.jl
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://cometscome.github.io/QuadraticHamiltonians.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://cometscome.github.io/QuadraticHamiltonians.jl/dev/)
