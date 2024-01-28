@@ -21,7 +21,7 @@ And also we implemented the following method:
  
 Please note that this is an alpha version. 
 
-We consider the Hamiltonian only with quadratic form terms.
+We consider the Hamiltonian only with quadratic form terms in real space.
 ```math
 \hat{H} \equiv \sum_{i j} \sum_{\alpha \beta} H_{ij} c_{i \alpha}^{\dagger} c_{j \beta}
 ```
@@ -29,6 +29,7 @@ or
 ```math
 \hat{H}_{\rm BdG} \equiv \sum_{i j} \sum_{\alpha \beta} H_{ij} c_{i \alpha}^{\dagger} c_{j \beta} + \sum_{i j} \sum_{\alpha \beta} \bar{H}_{ij} c_{i \alpha} c_{j \beta}^{\dagger} + \sum_{i j} + \sum_{i j} \sum_{\alpha \beta} \Delta_{ij} c_{i \alpha}^{\dagger} c_{j \beta}^{\dagger} + \sum_{\alpha \beta} \bar{\Delta}_{ij} c_{i \alpha} c_{j \beta} 
 ```
+if the keyword ```isSC``` is ```true```. If you want to consider a superconducting BdG Hamiltonian, you need the relation $\bar{H}_{ij}= - H_{ij}^{\ast}$ and $\bar{\Delta}_{ij} = \Delta_{ji}^{\ast}$
 
 Now this package can calculate 
 -  Meanfields defined as $\langle c_i^{\dagger} c_j \rangle$, $\langle c_i^{\dagger} c_j^{\dagger} \rangle$ , $\langle c_i c_j^{\dagger} \rangle$ and $\langle c_i c_j \rangle$.
