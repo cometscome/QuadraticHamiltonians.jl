@@ -8,6 +8,9 @@
 This is an alpha version. 
 
 This calculates meanfields of the Hamiltonian with quadratic terms in superconductors. 
+With the use of this package, you do not have to consider a matrix of the Hamiltonian. To construct the Hamiltonian, just add the operators. 
+
+
 We implemented two kinds of methods. 
 
 - 1. Chebyshev Polynomial method: Yuki Nagai, Yukihiro Ota, and Masahiko Machida, Efficient Numerical Self-Consistent Mean-Field Approach for Fermionic Many-Body Systems by Polynomial Expansion on Spectral Density, [J. Phys. Soc. Jpn. 81, 024710 (2012)](https://journals.jps.jp/doi/10.1143/JPSJ.81.024710)
