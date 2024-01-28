@@ -37,6 +37,20 @@ function test4()
     c1down = FermionOP(1, 2)
     Gij0 = calc_meanfields(m, c1up, c1down) #<c1up c1down>
     println(Gij0)
+    num = 100
+    zs = zeros(ComplexF64, num)
+    ene = range(-1, 1, length=num)
+    eta = 0.01
+    for i = 1:num
+        zs[i] = ene[i] + im * eta
+    end
+    Gij = calc_greenfunction(ham, zs, c1up', c1up)
+    fp = open("test.txt", "w")
+    for i = 1:num
+        #println(Gij[i])
+        println(fp, ene[i], "\t", -imag(Gij[i]) / pi)
+    end
+    close(fp)
 end
 
 function test3()

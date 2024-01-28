@@ -207,10 +207,37 @@ function Hamiltonian(T::DataType, num_sites; num_internal_degree=1, isSC=false)
     #return Hamiltonian{T,N,isSC,num_internal_degree,num_sites}(qoperators)
 end
 
-function Base.:+(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}) where {T1,T2,N,isSC,num_internal_degree,num_sites}
+function Base.:+(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}, sign::Number) where {T1,T2,N,isSC,num_internal_degree,num_sites}
     for (i, operator) in enumerate(term.operators)
         c1 = operator[1]
         c2 = operator[2]
+        @assert c1.internal_index <= num_internal_degree "internal degree of freedom is $num_internal_degree but the internal index of the $i -th first operator is $(c1.internal_index)"
+        @assert c2.internal_index <= num_internal_degree "internal degree of freedom is $num_internal_degree but the internal index of the $i -th second operator is $(c2.internal_index)"
+
+        if isSC
+            ii = (c1.site - 1) * num_internal_degree + c1.internal_index + c1.is_annihilation_operator * N
+            jj = (c2.site - 1) * num_internal_degree + c2.internal_index + (!c2.is_annihilation_operator) * N
+        else
+            ii = (c1.site - 1) * num_internal_degree + c1.internal_index
+            jj = (c2.site - 1) * num_internal_degree + c2.internal_index
+        end
+        h.matrix[ii, jj] += sign * term.values[i]
+    end
+    #display(h.matrix)
+    #qoperators = h.qoperators + term
+    #Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(qoperators)
+    Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(h.matrix)
+end
+
+function Base.:+(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}) where {T1,T2,N,isSC,num_internal_degree,num_sites}
+    return Base.:+(h, term, +1)
+    #=
+    for (i, operator) in enumerate(term.operators)
+        c1 = operator[1]
+        c2 = operator[2]
+        @assert c1.internal_index <= num_internal_degree "internal degree of freedom is $num_internal_degree but the internal index of the $i -th first operator is $(c1.internal_index)"
+        @assert c2.internal_index <= num_internal_degree "internal degree of freedom is $num_internal_degree but the internal index of the $i -th second operator is $(c2.internal_index)"
+
         if isSC
             ii = (c1.site - 1) * num_internal_degree + c1.internal_index + c1.is_annihilation_operator * N
             jj = (c2.site - 1) * num_internal_degree + c2.internal_index + (!c2.is_annihilation_operator) * N
@@ -224,12 +251,18 @@ function Base.:+(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::
     #qoperators = h.qoperators + term
     #Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(qoperators)
     Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(h.matrix)
+    =#
 end
 
 function Base.:-(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}) where {T1,T2,N,isSC,num_internal_degree,num_sites}
+    return Base.:+(h, term, -1)
+    #=
     for (i, operator) in enumerate(term.operators)
         c1 = operator[1]
         c2 = operator[2]
+        @assert c1.internal_index <= num_internal_degree "internal degree of freedom is $num_internal_degree but the internal index of the $i -th first operator is $(c1.internal_index)"
+        @assert c2.internal_index <= num_internal_degree "internal degree of freedom is $num_internal_degree but the internal index of the $i -th second operator is $(c2.internal_index)"
+
         if isSC
             ii = (c1.site - 1) * num_internal_degree + c1.internal_index + c1.is_annihilation_operator * N
             jj = (c2.site - 1) * num_internal_degree + c2.internal_index + (!c2.is_annihilation_operator) * N
@@ -242,6 +275,7 @@ function Base.:-(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::
     #qoperators = h.qoperators + term
     #Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(qoperators)
     Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(h.matrix)
+    =#
 end
 
 
