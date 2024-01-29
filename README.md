@@ -866,3 +866,184 @@ num. of Matsubara freqs. 40
   2.952684 seconds (13.35 M allocations: 3.721 GiB, 4.15% gc time)
 65-th -0.6013651365577349 9.490118655278245e-5
 ```
+
+## Parallel computing
+To use many cores, just use Distributed package. 
+
+```julia
+using Distributed
+@everywhere using QuadraticHamiltonians
+```
+In the case of the topological s-wave superconductor, the code is written as 
+```julia
+function main()
+    Nx = 16
+    Ny = 16
+    μ = 3.5
+    Δ0 = 3
+    Δs = Δ0 * ones(Nx * Ny)
+    Δsnew = similar(Δs)
+    T = 0.01
+    U = -5.6
+    h = 1
+    α = 1
+    isPBC = false
+
+    ham = make_TSC_hamiltonian(Nx, Ny, μ, Δs, h, α, isPBC)
+    m = Meanfields_solver(ham, T)
+
+    for it = 1:100
+        @time Gs = pmap(i -> calc_meanfields(m, FermionOP(i, 1), FermionOP(i, 2)), 1:Nx*Ny)
+        Δsnew .= real(U * Gs)
+        res = sum(abs.(Δsnew .- Δs)) / sum(abs.(Δs))
+        println("$(it)-th $(Δsnew[1]) $res")
+        if res < 1e-4
+            break
+        end
+        update!(m, Δsnew)
+        Δs .= Δsnew
+    end
+
+end
+main()
+```
+The only difference is ```pmap```. 
+
+The output is 
+```
+julia -p 4 --project=../ self.jl
+The solver is the RSCG
+num. of Matsubara freqs. 40
+  1.603179 seconds (1.33 M allocations: 126.028 MiB, 0.79% gc time, 25.78% compilation time)
+1-th -1.873023776160689 1.6271730164203106
+  0.192392 seconds (42.37 k allocations: 38.468 MiB, 2.00% gc time)
+2-th -1.4418945612222904 0.20965023882070202
+  0.270357 seconds (42.38 k allocations: 38.491 MiB, 0.99% gc time)
+3-th -1.2113675935614676 0.13563888454719064
+  0.344826 seconds (42.37 k allocations: 38.471 MiB, 0.30% gc time)
+4-th -1.0683848898677126 0.09725266043470575
+  0.424078 seconds (42.38 k allocations: 38.480 MiB, 0.29% gc time)
+5-th -0.9719173169890015 0.07520905143665893
+  0.482996 seconds (42.39 k allocations: 38.503 MiB, 0.26% gc time)
+6-th -0.9031937676953646 0.0614030514203067
+  0.524416 seconds (42.37 k allocations: 38.472 MiB, 0.27% gc time)
+7-th -0.8522993398753158 0.052088904542545035
+  0.567269 seconds (42.38 k allocations: 38.495 MiB, 0.22% gc time)
+8-th -0.8134640044396014 0.04536935661275386
+  0.602301 seconds (42.38 k allocations: 38.482 MiB)
+9-th -0.7830935035525877 0.040207500802570885
+  0.576101 seconds (42.38 k allocations: 38.477 MiB, 0.19% gc time)
+10-th -0.7588369948792518 0.03600999926600642
+  0.635709 seconds (42.38 k allocations: 38.475 MiB, 0.20% gc time)
+11-th -0.7391008228944542 0.032434049930203365
+  0.659751 seconds (42.38 k allocations: 38.492 MiB, 0.15% gc time)
+12-th -0.7227749038266035 0.02928518035552862
+  0.669727 seconds (42.38 k allocations: 38.491 MiB, 0.14% gc time)
+13-th -0.709069155872567 0.026456030788754803
+  0.679683 seconds (42.38 k allocations: 38.487 MiB, 0.14% gc time)
+14-th -0.6974110355699145 0.02388799764731334
+  0.687933 seconds (42.37 k allocations: 38.461 MiB, 0.14% gc time)
+15-th -0.6873791072315169 0.0215479761914521
+  0.697942 seconds (42.38 k allocations: 38.479 MiB, 0.14% gc time)
+16-th -0.6786586888786034 0.019415153943493132
+  0.723906 seconds (42.38 k allocations: 38.476 MiB)
+17-th -0.671011679282689 0.017474092388203903
+  0.726147 seconds (42.37 k allocations: 38.471 MiB, 0.16% gc time)
+18-th -0.6642555683053231 0.01571143747168237
+  0.731059 seconds (42.38 k allocations: 38.483 MiB, 0.16% gc time)
+19-th -0.6582486676185052 0.014114520535718768
+  0.726339 seconds (42.38 k allocations: 38.487 MiB, 0.16% gc time)
+20-th -0.6528795616656254 0.012670927816306929
+  0.730802 seconds (42.38 k allocations: 38.482 MiB, 0.15% gc time)
+21-th -0.648059496125448 0.01136845977752193
+  0.744700 seconds (42.37 k allocations: 38.462 MiB, 0.15% gc time)
+22-th -0.643716834307313 0.010195258886917814
+  0.739585 seconds (42.37 k allocations: 38.477 MiB, 0.14% gc time)
+23-th -0.6397929998696529 0.00913994023009275
+  0.749548 seconds (42.38 k allocations: 38.476 MiB, 0.16% gc time)
+24-th -0.6362394570260124 0.00819171955905381
+  0.756281 seconds (42.37 k allocations: 38.457 MiB, 0.17% gc time)
+25-th -0.63301548265852 0.007340492709279601
+  0.780807 seconds (42.39 k allocations: 38.504 MiB)
+26-th -0.6300864856968793 0.006576883266048058
+  0.787450 seconds (42.38 k allocations: 38.480 MiB, 0.13% gc time)
+27-th -0.6274227436671878 0.005892252532124953
+  0.782271 seconds (42.37 k allocations: 38.471 MiB, 0.14% gc time)
+28-th -0.6249984477604995 0.005278692772073217
+  0.775206 seconds (42.38 k allocations: 38.481 MiB, 0.14% gc time)
+29-th -0.6227909814572898 0.004729001813477821
+  0.781968 seconds (42.38 k allocations: 38.474 MiB, 0.14% gc time)
+30-th -0.6207803405763253 0.004236642241088458
+  0.786387 seconds (42.37 k allocations: 38.471 MiB, 0.14% gc time)
+31-th -0.6189487129414846 0.0037957051360124226
+  0.784794 seconds (42.38 k allocations: 38.479 MiB, 0.12% gc time)
+32-th -0.6172801374355674 0.003400858384159586
+  0.788380 seconds (42.38 k allocations: 38.498 MiB, 0.12% gc time)
+33-th -0.6157602345110169 0.0030473007844825273
+  0.796208 seconds (42.38 k allocations: 38.482 MiB)
+34-th -0.6143759966380645 0.0027307205386831934
+  0.783867 seconds (42.37 k allocations: 38.469 MiB, 0.12% gc time)
+35-th -0.6131156094137203 0.0024472404597514195
+  0.784699 seconds (42.38 k allocations: 38.487 MiB, 0.12% gc time)
+36-th -0.6119683239104643 0.002193392792552506
+  0.797728 seconds (42.38 k allocations: 38.476 MiB, 0.12% gc time)
+37-th -0.6109243302390619 0.001966063888845468
+  0.811322 seconds (42.37 k allocations: 38.466 MiB, 0.12% gc time)
+38-th -0.6099746645043274 0.0017624669009970566
+  0.798703 seconds (42.38 k allocations: 38.475 MiB, 0.18% gc time)
+39-th -0.6091111276751108 0.001580108345611027
+  0.804311 seconds (42.38 k allocations: 38.484 MiB, 0.14% gc time)
+40-th -0.6083262105712027 0.001416755095863366
+  0.802179 seconds (42.37 k allocations: 38.463 MiB, 0.14% gc time)
+41-th -0.6076130419061138 0.0012704129923773262
+  0.793821 seconds (42.38 k allocations: 38.480 MiB)
+42-th -0.6069653199286934 0.00113929572631485
+  0.803291 seconds (42.38 k allocations: 38.483 MiB, 0.12% gc time)
+43-th -0.6063772737453785 0.0010218056690919832
+  0.799485 seconds (42.37 k allocations: 38.476 MiB, 0.14% gc time)
+44-th -0.6058436172654165 0.0009165157705025486
+  0.797902 seconds (42.38 k allocations: 38.472 MiB, 0.14% gc time)
+45-th -0.6053595096728797 0.0008221475370220531
+  0.797214 seconds (42.37 k allocations: 38.472 MiB, 0.14% gc time)
+46-th -0.6049205193354682 0.0007375584043463334
+  0.797498 seconds (42.38 k allocations: 38.481 MiB, 0.13% gc time)
+47-th -0.604522590849413 0.0006617273730522861
+  0.800408 seconds (42.38 k allocations: 38.492 MiB, 0.12% gc time)
+48-th -0.6041620163787921 0.000593740534829054
+  0.795930 seconds (42.38 k allocations: 38.491 MiB, 0.11% gc time)
+49-th -0.6038354056749607 0.0005327789447378642
+  0.794780 seconds (42.37 k allocations: 38.463 MiB, 0.14% gc time)
+50-th -0.6035396613195223 0.00047811220217767336
+  0.793870 seconds (42.38 k allocations: 38.479 MiB)
+51-th -0.603271956206971 0.0004290844742470022
+  0.797897 seconds (42.38 k allocations: 38.477 MiB, 0.11% gc time)
+52-th -0.6030297098728377 0.0003851109026020435
+  0.801658 seconds (42.38 k allocations: 38.478 MiB, 0.13% gc time)
+53-th -0.6028105687238502 0.0003456655189107658
+  0.797855 seconds (42.38 k allocations: 38.487 MiB, 0.13% gc time)
+54-th -0.6026123890946519 0.0003102796361298741
+  0.797622 seconds (42.37 k allocations: 38.457 MiB, 0.10% gc time)
+55-th -0.6024332167560249 0.00027853279022410063
+  0.801957 seconds (42.37 k allocations: 38.468 MiB, 0.13% gc time)
+56-th -0.6022712741026642 0.00025004790660750666
+  0.801176 seconds (42.37 k allocations: 38.462 MiB, 0.10% gc time)
+57-th -0.6021249422723195 0.00022448825972236396
+  0.797505 seconds (42.38 k allocations: 38.482 MiB, 0.10% gc time)
+58-th -0.6019927502404482 0.00020155103761652473
+  0.796861 seconds (42.38 k allocations: 38.479 MiB)
+59-th -0.6018733605571956 0.0001809666539966145
+  0.803191 seconds (42.38 k allocations: 38.485 MiB, 0.13% gc time)
+60-th -0.6017655584431989 0.00016249232065718839
+  0.805552 seconds (42.38 k allocations: 38.483 MiB, 0.10% gc time)
+61-th -0.6016682408866258 0.00014591021496670423
+  0.800285 seconds (42.37 k allocations: 38.467 MiB, 0.11% gc time)
+62-th -0.6015804069224595 0.0001310259234340552
+  0.804897 seconds (42.38 k allocations: 38.469 MiB, 0.12% gc time)
+63-th -0.6015011472832793 0.00011766420738475466
+  0.796194 seconds (42.37 k allocations: 38.472 MiB, 0.12% gc time)
+64-th -0.6014296388255697 0.00010566954846444353
+  0.804151 seconds (42.38 k allocations: 38.481 MiB, 0.12% gc time)
+65-th -0.6013651365577349 9.490118655278245e-5
+```
+
+
