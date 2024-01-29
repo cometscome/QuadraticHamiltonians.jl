@@ -2,6 +2,21 @@ using QuadraticHamiltonians
 using Plots
 using BenchmarkTools
 
+function test()
+    H = Hamiltonian(16)
+    display(H)
+    c1 = FermionOP(1)
+    c3 = FermionOP(3)
+    c4 = FermionOP(4)
+    display(0.3 * c4' * c3)
+    display(im * c1' * c4)
+    H += -1 * c1' * c1 + 2 * c3' * c1 + 0.3 * c4' * c3
+    display(H)
+    H -= 2 * c3' * c1 + 0.3 * c4' * c3
+    display(H)
+end
+test()
+
 function main()
     μ = -1.5
     Nx = 128
@@ -136,5 +151,5 @@ function main2()
 
 
 end
-main()
-main2()
+#main()
+#main2()

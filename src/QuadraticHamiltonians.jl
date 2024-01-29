@@ -18,6 +18,16 @@ function FermionOP(site)
     return FermionOP(site, 1, true, 1)
 end
 
+function Base.display(c::FermionOP{T}) where {T}
+    value = c.value
+    valuestring = make_valueheader(value)
+
+    cname2 = valuestring * "C"
+    cname2 *= "_{$(c.site),$(c.internal_index)}"
+    cname2 *= ifelse(!c.is_annihilation_operator, "^+", "")
+    println(cname2)
+end
+
 Base.adjoint(c::FermionOP) = FermionOP(c.site, c.internal_index, !c.is_annihilation_operator, c.value)
 
 struct QuadraticOPs{T}
@@ -96,6 +106,9 @@ function Base.:+(h1::QuadraticOPs{T1}, h2::QuadraticOPs{T2}, sign::Number) where
     if T2 <: Complex
         T = ComplexF64
     end
+    if T <: Int && T2 <: Real
+        T = T2
+    end
     operators = Tuple{FermionOP{T},FermionOP{T}}[]
     values = T[]
     for (i, operator) in enumerate(h1.operators)
@@ -143,6 +156,34 @@ function Base.adjoint(h1::QuadraticOPs{T1}) where {T1}
 end
 
 
+function make_valueheader(value)
+
+    if value == 1
+        valuestring = "+"
+    else
+        if imag(value) == 0
+            if real(value) < 0
+                valuestring = "-$(-real(value))"
+            else
+                valuestring = "+$(real(value))"
+            end
+        elseif real(value) == 0
+            if imag(value) < 0
+                valuestring = "-$(-imag(value))im"
+            else
+                valuestring = "+$(imag(value))im"
+            end
+        else
+            if imag(value) != 0
+                valuestring = "+($(value))"
+            else
+                valuestring = "+$(real(value))"
+            end
+        end
+    end
+    return valuestring
+end
+
 function Base.display(h::QuadraticOPs)
     cdagcstring = ""
     for (i, operator) in enumerate(h.operators)
@@ -160,15 +201,9 @@ function Base.display(h::QuadraticOPs)
         cname2 *= ifelse(!c2.is_annihilation_operator, "^+", "")
 
         value = h.values[i]
-        if value == 1
-            valuestring = "+"
-        else
-            if imag(value) == 0 && real(value) < 0
-                valuestring = "-$(-value)"
-            else
-                valuestring = "+$(value)"
-            end
-        end
+        valuestring = make_valueheader(value)
+
+
 
         if value != 0
             cdagcstring *= valuestring * cname1 * cname2 * " "
@@ -181,7 +216,6 @@ using SparseArrays
 
 struct Hamiltonian{T,N,isSC,num_internal_degree,num_sites} <: AbstractMatrix{T}
     matrix::SparseMatrixCSC{T,Int64}
-    #qoperators::QuadraticOPs{T}
 end
 
 Base.size(h::Hamiltonian) = size(h.matrix)
@@ -189,14 +223,11 @@ Base.getindex(A::Hamiltonian, i::Int) = getindex(A.matrix, i)
 Base.getindex(A::Hamiltonian, I::Vararg{Int,N}) where {N} = getindex(A.matrix, I)
 
 
-#Base.size(h::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}) where {T,N,isSC,num_internal_degree,num_sites} = ifelse(isSC, 2N, N)
-
 function Hamiltonian(num_sites; num_internal_degree=1, isSC=false)
     Hamiltonian(Float64, num_sites; num_internal_degree, isSC)
 end
 
 function Hamiltonian(T::DataType, num_sites; num_internal_degree=1, isSC=false)
-    #qoperators = QuadraticOPs(T)
     N = num_sites * num_internal_degree
     if isSC
         matrix = spzeros(T, 2N, 2N)
@@ -204,7 +235,6 @@ function Hamiltonian(T::DataType, num_sites; num_internal_degree=1, isSC=false)
         matrix = spzeros(T, N, N)
     end
     return Hamiltonian{T,N,isSC,num_internal_degree,num_sites}(matrix)
-    #return Hamiltonian{T,N,isSC,num_internal_degree,num_sites}(qoperators)
 end
 
 function Base.:+(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}, sign::Number) where {T1,T2,N,isSC,num_internal_degree,num_sites}
@@ -218,64 +248,21 @@ function Base.:+(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::
             ii = (c1.site - 1) * num_internal_degree + c1.internal_index + c1.is_annihilation_operator * N
             jj = (c2.site - 1) * num_internal_degree + c2.internal_index + (!c2.is_annihilation_operator) * N
         else
+            @assert !c1.is_annihilation_operator && c2.is_annihilation_operator "$i -th term is not C^+ C form $c1 $c2"
             ii = (c1.site - 1) * num_internal_degree + c1.internal_index
             jj = (c2.site - 1) * num_internal_degree + c2.internal_index
         end
         h.matrix[ii, jj] += sign * term.values[i]
     end
-    #display(h.matrix)
-    #qoperators = h.qoperators + term
-    #Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(qoperators)
     Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(h.matrix)
 end
 
 function Base.:+(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}) where {T1,T2,N,isSC,num_internal_degree,num_sites}
     return Base.:+(h, term, +1)
-    #=
-    for (i, operator) in enumerate(term.operators)
-        c1 = operator[1]
-        c2 = operator[2]
-        @assert c1.internal_index <= num_internal_degree "internal degree of freedom is $num_internal_degree but the internal index of the $i -th first operator is $(c1.internal_index)"
-        @assert c2.internal_index <= num_internal_degree "internal degree of freedom is $num_internal_degree but the internal index of the $i -th second operator is $(c2.internal_index)"
-
-        if isSC
-            ii = (c1.site - 1) * num_internal_degree + c1.internal_index + c1.is_annihilation_operator * N
-            jj = (c2.site - 1) * num_internal_degree + c2.internal_index + (!c2.is_annihilation_operator) * N
-        else
-            ii = (c1.site - 1) * num_internal_degree + c1.internal_index
-            jj = (c2.site - 1) * num_internal_degree + c2.internal_index
-        end
-        h.matrix[ii, jj] += term.values[i]
-    end
-    #display(h.matrix)
-    #qoperators = h.qoperators + term
-    #Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(qoperators)
-    Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(h.matrix)
-    =#
 end
 
 function Base.:-(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}) where {T1,T2,N,isSC,num_internal_degree,num_sites}
     return Base.:+(h, term, -1)
-    #=
-    for (i, operator) in enumerate(term.operators)
-        c1 = operator[1]
-        c2 = operator[2]
-        @assert c1.internal_index <= num_internal_degree "internal degree of freedom is $num_internal_degree but the internal index of the $i -th first operator is $(c1.internal_index)"
-        @assert c2.internal_index <= num_internal_degree "internal degree of freedom is $num_internal_degree but the internal index of the $i -th second operator is $(c2.internal_index)"
-
-        if isSC
-            ii = (c1.site - 1) * num_internal_degree + c1.internal_index + c1.is_annihilation_operator * N
-            jj = (c2.site - 1) * num_internal_degree + c2.internal_index + (!c2.is_annihilation_operator) * N
-        else
-            ii = (c1.site - 1) * num_internal_degree + c1.internal_index
-            jj = (c2.site - 1) * num_internal_degree + c2.internal_index
-        end
-        h.matrix[ii, jj] -= term.values[i]
-    end
-    #qoperators = h.qoperators + term
-    #Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(qoperators)
-    Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(h.matrix)
-    =#
 end
 
 
@@ -358,15 +345,8 @@ function display_quadratic(ham::Hamiltonian{T,N,true,num_internal_degree,num_sit
                 cname2 *= ifelse(j_isdag, "^+", "")
 
                 value = ham.matrix.nzval[ii]
-                if value == 1
-                    valuestring = "+"
-                else
-                    if imag(value) == 0 && real(value) < 0
-                        valuestring = "-$(-value)"
-                    else
-                        valuestring = "+$(value)"
-                    end
-                end
+                valuestring = make_valueheader(value)
+
 
                 if value != 0
                     cdagcstring *= valuestring * cname1 * cname2 * " "
@@ -382,7 +362,6 @@ end
 
 function display_quadratic(ham::Hamiltonian{T,N,false,num_internal_degree,num_sites}) where {T,N,num_internal_degree,num_sites}
     cdagcstring = ""
-
     for j = 1:N
 
         jinternal = (j - 1) % num_internal_degree + 1
@@ -390,9 +369,10 @@ function display_quadratic(ham::Hamiltonian{T,N,false,num_internal_degree,num_si
         j_isdag = false
 
 
-        for ii = ham.matrix.colptr[j]:ham.matrix.colptr[j+1]
+        for ii = ham.matrix.colptr[j]:ham.matrix.colptr[j+1]-1
             if ii <= length(ham.matrix.rowval)
                 i = ham.matrix.rowval[ii]
+                println(i)
 
                 iinternal = (i - 1) % num_internal_degree + 1
                 isite = (i - iinternal) ÷ num_internal_degree + 1
@@ -409,15 +389,7 @@ function display_quadratic(ham::Hamiltonian{T,N,false,num_internal_degree,num_si
                 cname2 *= ifelse(j_isdag, "^+", "")
 
                 value = ham.matrix.nzval[ii]
-                if value == 1
-                    valuestring = "+"
-                else
-                    if imag(value) == 0 && real(value) < 0
-                        valuestring = "-$(-value)"
-                    else
-                        valuestring = "+$(value)"
-                    end
-                end
+                valuestring = make_valueheader(value)
 
                 if value != 0
                     cdagcstring *= valuestring * cname1 * cname2 * " "
@@ -435,55 +407,6 @@ function construct_matrix(ham)
     return ham.matrix
 end
 
-
-struct SCgap{T,N} <: AbstractMatrix{T}
-    qoperators::QuadraticOPs{T}
-    num_internal_degree::Int64
-    num_sites::Int64
-end
-
-function SCgap(num_sites; num_internal_degree=1)
-    SCgap(Float64, num_sites; num_internal_degree)
-end
-
-function SCgap(T::DataType, num_sites; num_internal_degree=1)
-    qoperators = QuadraticOPs(T)
-    N = num_internal_degree * num_sites
-    return SCgap{T,N}(qoperators, num_internal_degree, num_sites)
-end
-
-function Base.:+(h::SCgap{T1,N}, term::QuadraticOPs{T2}) where {T1,T2,N}
-    qoperators = h.qoperators + term
-    SCgap{T1,N}(qoperators, h.num_internal_degree, h.num_sites)
-end
-
-function Base.display(h::SCgap)
-    println("---------------------------------")
-    println("Supercondcting gap: ")
-    println("Num. of sites: $(h.num_sites)")
-    println("Num. of internal degree of freedom: $(h.num_internal_degree)")
-    print("Delta = ")
-    display(h.qoperators)
-    println("---------------------------------")
-end
-
-
-function construct_matrix(ham::SCgap{T,N}) where {T,N}
-    #N = ham.num_internal_degree * ham.num_sites
-    h = ham.qoperators
-
-    ham_matrix = spzeros(T, N, N)
-
-    for (i, operator) in enumerate(h.operators)
-        c1 = operator[1]
-        c2 = operator[2]
-        ii = (c1.site - 1) * ham.num_internal_degree + c1.internal_index
-        jj = (c2.site - 1) * ham.num_internal_degree + c2.internal_index
-        @assert !c1.is_annihilation_operator && !c2.is_annihilation_operator "This is not C^+ C^+ form $c1 $c2"
-        ham_matrix[ii, jj] += h.values[i]
-    end
-    return ham_matrix
-end
 
 include("RSCGSolver.jl")
 export RSCGSolver, solve
