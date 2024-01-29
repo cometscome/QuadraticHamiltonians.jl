@@ -275,6 +275,17 @@ c1 = FermionOP(1)
 Gij0 = calc_meanfields(m, c1, c1) #<c1 c1>
 ```
 
+If we want to update the Hamiltonian, we can use 
+```julia
+update_hamiltonian!(m, value, ci', ci')
+update_hamiltonian!(m, value, ci, ci)
+```
+
+If we want to get the Hamiltonian, we can use 
+```julia
+ham = get_hamiltonian(m)
+```
+
 # How to calculate Green's functions or local density of states
 
 
