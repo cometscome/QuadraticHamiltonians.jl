@@ -245,7 +245,7 @@ for ix = 1:Nx
             jy += ifelse(jy < 1, Ny, 0)
             j = (jy - 1) * Nx + jx
             cj = FermionOP(j)
-            ham += -1 * (ci' * cj - ci * cj')
+            ham += -1 * (ci' * cj - cj * ci')
         end
         ham += -μ * (ci' * ci - ci * ci')
         ham += Δ * ci' * ci' + Δ * ci * ci
@@ -363,7 +363,7 @@ function main()
                 jy += ifelse(jy < 1, Ny, 0)
                 j = (jy - 1) * Nx + jx
                 cj = FermionOP(j)
-                ham += -1 * (ci' * cj - ci * cj')
+                ham += -1 * (ci' * cj - cj * ci')
             end
             ham += -μ * (ci' * ci - ci * ci')
             ham += Δ * ci' * ci' + Δ * ci * ci
@@ -443,7 +443,7 @@ function make_hamiltonian(Nx, Ny, μ, Δs)
                 jy += ifelse(jy < 1, Ny, 0)
                 j = (jy - 1) * Nx + jx
                 cj = FermionOP(j)
-                ham += -1 * (ci' * cj - ci * cj')
+                ham += -1 * (ci' * cj - cj * ci')
             end
             ham += -μ * (ci' * ci - ci * ci')
             ham += Δs[i] * ci' * ci' + Δs[i] * ci * ci
@@ -554,7 +554,7 @@ function main2()
                     jy += ifelse(jy < 1, Ny, 0)
                     j = (jy - 1) * Nx + jx
                     cj = FermionOP(j, jspin)
-                    ham += -1 * (ci' * cj - ci * cj')
+                    ham += -1 * (ci' * cj - cj * ci')
                 end
                 ham += -μ * (ci' * ci - ci * ci')
             end
@@ -617,3 +617,252 @@ Chebyshev with LKvectors: 0.1761175173443056
 ```
 
 ![ldos_spin](https://github.com/cometscome/QuadraticHamiltonians.jl/assets/21115243/bd19da9d-ab50-42bc-99df-bf0bed5d888d)
+
+## Topological s-wave superconductor with the Zeeman term and the Rashba spin-orbit term
+
+```julia
+using QuadraticHamiltonians
+
+function make_TSC_hamiltonian(Nx, Ny, μ, Δs, h, α, isPBC)
+    N = Nx * Ny
+    ham = Hamiltonian(ComplexF64, N, num_internal_degree=2, isSC=true)
+    hops = [(+1, 0), (-1, 0), (0, +1), (0, -1)]
+    for ix = 1:Nx
+        for iy = 1:Ny
+            i = (iy - 1) * Nx + ix
+            for ispin = 1:2
+                ci = FermionOP(i, ispin)
+                σy = ifelse(ispin == 1, -im, im)
+                σx = 1
+                σz = ifelse(ispin == 1, 1, -1)
+
+                for (dx, dy) in hops
+                    jx = ix + dx
+                    if isPBC
+                        jx += ifelse(jx > Nx, -Nx, 0)
+                        jx += ifelse(jx < 1, Nx, 0)
+                    end
+                    jy = iy + dy
+                    if isPBC
+                        jy += ifelse(jy > Ny, -Ny, 0)
+                        jy += ifelse(jy < 1, Ny, 0)
+                    end
+
+                    if 1 <= jx <= Nx && 1 <= jy <= Ny
+                        j = (jy - 1) * Nx + jx
+                        jspin = ispin
+                        cj = FermionOP(j, jspin)
+                        ham += -1 * (ci' * cj - cj * ci')
+
+                        jspin = ifelse(ispin == 1, 2, 1)
+                        cj = FermionOP(j, jspin)
+
+                        if dy == 0
+                            if dx == 1
+                                ham += (α / (2im)) * (ci' * cj - cj * ci') * σy
+                            else
+                                ham += -1 * (α / (2im)) * (ci' * cj - cj * ci') * σy
+                            end
+                        elseif dx == 0
+                            if dy == 1
+                                ham += (α / (2im)) * (ci' * cj - cj * ci') * σx
+                            else
+                                ham += -1 * (α / (2im)) * (ci' * cj - cj * ci') * σx
+                            end
+                        end
+                    end
+                end
+                ham += (-μ - h * σz) * (ci' * ci - ci * ci')
+            end
+            ciup = FermionOP(i, 1)
+            cidown = FermionOP(i, 2)
+            ham += Δs[i] * ciup' * cidown' + Δs[i] * cidown * ciup
+            ham += -Δs[i] * cidown' * ciup' - Δs[i] * ciup * cidown
+        end
+    end
+
+
+    return ham
+end
+
+function update!(m, Δs)
+    N, _ = size(m.hamiltonian)
+    for i = 1:(N÷4)
+        ciup = FermionOP(i, 1)
+        cidown = FermionOP(i, 2)
+        update_hamiltonian!(m, -Δs[i], ciup', cidown')
+        update_hamiltonian!(m, Δs[i], cidown', ciup')
+        update_hamiltonian!(m, Δs[i], ciup, cidown)
+        update_hamiltonian!(m, -Δs[i], cidown, ciup)
+    end
+end
+
+
+
+function main()
+    Nx = 16
+    Ny = 16
+    μ = 3.5
+    Δ0 = 3
+    Δs = Δ0 * ones(Nx * Ny)
+    Δsnew = similar(Δs)
+    T = 0.01
+    U = -5.6
+    h = 1
+    α = 1
+
+    isPBC = false
+    ham = make_TSC_hamiltonian(Nx, Ny, μ, Δs, h, α, isPBC)
+    m = Meanfields_solver(ham, T)
+
+    for it = 1:100
+        @time Gs = map(i -> calc_meanfields(m, FermionOP(i, 1), FermionOP(i, 2)), 1:Nx*Ny)
+        Δsnew .= real(U * Gs)
+        res = sum(abs.(Δsnew .- Δs)) / sum(abs.(Δs))
+        println("$(it)-th $(Δsnew[1]) $res")
+        if res < 1e-4
+            break
+        end
+        update!(m, Δsnew)
+        Δs .= Δsnew
+    end
+
+end
+main()
+```
+
+The output is 
+```
+The solver is the RSCG
+num. of Matsubara freqs. 40
+  1.079232 seconds (6.06 M allocations: 707.212 MiB, 16.58% gc time, 64.22% compilation time)
+1-th -1.873023776160689 1.6271730164203106
+  0.601234 seconds (4.04 M allocations: 846.823 MiB, 4.71% gc time)
+2-th -1.4418945612222904 0.20965023882070202
+  0.918474 seconds (5.74 M allocations: 1.242 GiB, 4.02% gc time)
+3-th -1.2113675935614676 0.13563888454719064
+  1.213072 seconds (7.08 M allocations: 1.605 GiB, 4.38% gc time)
+4-th -1.0683848898677126 0.09725266043470575
+  1.519615 seconds (8.41 M allocations: 1.988 GiB, 4.20% gc time)
+5-th -0.9719173169890015 0.07520905143665893
+  1.774157 seconds (9.26 M allocations: 2.261 GiB, 4.52% gc time)
+6-th -0.9031937676953646 0.0614030514203067
+  1.960240 seconds (9.93 M allocations: 2.480 GiB, 4.87% gc time)
+7-th -0.8522993398753158 0.052088904542545035
+  2.113638 seconds (10.48 M allocations: 2.672 GiB, 4.82% gc time)
+8-th -0.8134640044396014 0.04536935661275386
+  2.238472 seconds (10.90 M allocations: 2.814 GiB, 5.02% gc time)
+9-th -0.7830935035525877 0.040207500802570885
+  2.127559 seconds (10.55 M allocations: 2.707 GiB, 4.57% gc time)
+10-th -0.7588369948792518 0.03600999926600642
+  2.334611 seconds (11.38 M allocations: 2.977 GiB, 4.48% gc time)
+11-th -0.7391008228944542 0.032434049930203365
+  2.442818 seconds (11.64 M allocations: 3.064 GiB, 4.63% gc time)
+12-th -0.7227749038266035 0.02928518035552862
+  2.496474 seconds (11.85 M allocations: 3.135 GiB, 4.41% gc time)
+13-th -0.709069155872567 0.026456030788754803
+  2.483085 seconds (11.97 M allocations: 3.181 GiB, 3.93% gc time)
+14-th -0.6974110355699145 0.02388799764731334
+  2.495291 seconds (12.05 M allocations: 3.216 GiB, 3.89% gc time)
+15-th -0.6873791072315169 0.0215479761914521
+  2.542803 seconds (12.16 M allocations: 3.257 GiB, 4.01% gc time)
+16-th -0.6786586888786034 0.019415153943493132
+  2.587446 seconds (12.25 M allocations: 3.295 GiB, 4.06% gc time)
+17-th -0.671011679282689 0.017474092388203903
+  2.626588 seconds (12.35 M allocations: 3.335 GiB, 4.09% gc time)
+18-th -0.6642555683053231 0.01571143747168237
+  2.681020 seconds (12.46 M allocations: 3.373 GiB, 4.22% gc time)
+19-th -0.6582486676185052 0.014114520535718768
+  2.712846 seconds (12.44 M allocations: 3.368 GiB, 4.94% gc time)
+20-th -0.6528795616656254 0.012670927816306929
+  2.687108 seconds (12.47 M allocations: 3.385 GiB, 4.42% gc time)
+21-th -0.648059496125448 0.01136845977752193
+  2.698632 seconds (12.62 M allocations: 3.432 GiB, 4.16% gc time)
+22-th -0.643716834307313 0.010195258886917814
+  2.774037 seconds (12.60 M allocations: 3.431 GiB, 4.52% gc time)
+23-th -0.6397929998696529 0.00913994023009275
+  2.804256 seconds (12.72 M allocations: 3.478 GiB, 4.61% gc time)
+24-th -0.6362394570260124 0.00819171955905381
+  2.775846 seconds (12.89 M allocations: 3.538 GiB, 4.08% gc time)
+25-th -0.63301548265852 0.007340492709279601
+  2.812354 seconds (12.98 M allocations: 3.568 GiB, 4.28% gc time)
+26-th -0.6300864856968793 0.006576883266048058
+  2.825387 seconds (13.03 M allocations: 3.593 GiB, 3.97% gc time)
+27-th -0.6274227436671878 0.005892252532124953
+  2.830010 seconds (13.08 M allocations: 3.613 GiB, 3.93% gc time)
+28-th -0.6249984477604995 0.005278692772073217
+  2.877537 seconds (13.10 M allocations: 3.617 GiB, 4.20% gc time)
+29-th -0.6227909814572898 0.004729001813477821
+  2.814024 seconds (13.14 M allocations: 3.633 GiB, 3.63% gc time)
+30-th -0.6207803405763253 0.004236642241088458
+  2.844506 seconds (13.15 M allocations: 3.640 GiB, 3.96% gc time)
+31-th -0.6189487129414846 0.0037957051360124226
+  3.005532 seconds (13.16 M allocations: 3.642 GiB, 4.95% gc time)
+32-th -0.6172801374355674 0.003400858384159586
+  2.982854 seconds (13.17 M allocations: 3.646 GiB, 4.76% gc time)
+33-th -0.6157602345110169 0.0030473007844825273
+  2.929872 seconds (13.14 M allocations: 3.638 GiB, 4.32% gc time)
+34-th -0.6143759966380645 0.0027307205386831934
+  2.833398 seconds (13.16 M allocations: 3.644 GiB, 3.74% gc time)
+35-th -0.6131156094137203 0.0024472404597514195
+  2.948779 seconds (13.18 M allocations: 3.653 GiB, 4.51% gc time)
+36-th -0.6119683239104643 0.002193392792552506
+  2.935843 seconds (13.21 M allocations: 3.664 GiB, 4.45% gc time)
+37-th -0.6109243302390619 0.001966063888845468
+  2.944080 seconds (13.22 M allocations: 3.668 GiB, 4.50% gc time)
+38-th -0.6099746645043274 0.0017624669009970566
+  3.032381 seconds (13.22 M allocations: 3.668 GiB, 4.98% gc time)
+39-th -0.6091111276751108 0.001580108345611027
+  2.912560 seconds (13.27 M allocations: 3.687 GiB, 3.91% gc time)
+40-th -0.6083262105712027 0.001416755095863366
+  3.070945 seconds (13.28 M allocations: 3.694 GiB, 4.85% gc time)
+41-th -0.6076130419061138 0.0012704129923773262
+  2.959192 seconds (13.28 M allocations: 3.693 GiB, 4.50% gc time)
+42-th -0.6069653199286934 0.00113929572631485
+  3.039093 seconds (13.31 M allocations: 3.700 GiB, 4.66% gc time)
+43-th -0.6063772737453785 0.0010218056690919832
+  3.049923 seconds (13.32 M allocations: 3.704 GiB, 4.75% gc time)
+44-th -0.6058436172654165 0.0009165157705025486
+  3.028901 seconds (13.31 M allocations: 3.704 GiB, 4.65% gc time)
+45-th -0.6053595096728797 0.0008221475370220531
+  3.014559 seconds (13.32 M allocations: 3.707 GiB, 4.55% gc time)
+46-th -0.6049205193354682 0.0007375584043463334
+  3.013027 seconds (13.32 M allocations: 3.709 GiB, 4.51% gc time)
+47-th -0.604522590849413 0.0006617273730522861
+  3.065978 seconds (13.34 M allocations: 3.713 GiB, 4.85% gc time)
+48-th -0.6041620163787921 0.000593740534829054
+  2.998548 seconds (13.33 M allocations: 3.712 GiB, 4.67% gc time)
+49-th -0.6038354056749607 0.0005327789447378642
+  3.008589 seconds (13.34 M allocations: 3.715 GiB, 4.53% gc time)
+50-th -0.6035396613195223 0.00047811220217767336
+  2.984136 seconds (13.34 M allocations: 3.717 GiB, 4.27% gc time)
+51-th -0.603271956206971 0.0004290844742470022
+  2.986102 seconds (13.34 M allocations: 3.717 GiB, 4.31% gc time)
+52-th -0.6030297098728377 0.0003851109026020435
+  3.008851 seconds (13.35 M allocations: 3.718 GiB, 4.27% gc time)
+53-th -0.6028105687238502 0.0003456655189107658
+  2.926974 seconds (13.35 M allocations: 3.720 GiB, 3.93% gc time)
+54-th -0.6026123890946519 0.0003102796361298741
+  3.013989 seconds (13.36 M allocations: 3.721 GiB, 4.47% gc time)
+55-th -0.6024332167560249 0.00027853279022410063
+  2.925957 seconds (13.35 M allocations: 3.719 GiB, 4.07% gc time)
+56-th -0.6022712741026642 0.00025004790660750666
+  2.990428 seconds (13.35 M allocations: 3.722 GiB, 4.25% gc time)
+57-th -0.6021249422723195 0.00022448825972236396
+  2.993714 seconds (13.35 M allocations: 3.719 GiB, 4.50% gc time)
+58-th -0.6019927502404482 0.00020155103761652473
+  2.972320 seconds (13.35 M allocations: 3.719 GiB, 4.31% gc time)
+59-th -0.6018733605571956 0.0001809666539966145
+  2.998017 seconds (13.36 M allocations: 3.723 GiB, 4.52% gc time)
+60-th -0.6017655584431989 0.00016249232065718839
+  2.958357 seconds (13.35 M allocations: 3.718 GiB, 4.23% gc time)
+61-th -0.6016682408866258 0.00014591021496670423
+  2.954279 seconds (13.36 M allocations: 3.721 GiB, 4.15% gc time)
+62-th -0.6015804069224595 0.0001310259234340552
+  2.987971 seconds (13.36 M allocations: 3.723 GiB, 4.38% gc time)
+63-th -0.6015011472832793 0.00011766420738475466
+  2.967308 seconds (13.35 M allocations: 3.722 GiB, 4.31% gc time)
+64-th -0.6014296388255697 0.00010566954846444353
+  2.952684 seconds (13.35 M allocations: 3.721 GiB, 4.15% gc time)
+65-th -0.6013651365577349 9.490118655278245e-5
+```
