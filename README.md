@@ -291,13 +291,45 @@ If the Hamiltonian is expressed as the sum of the quadratic terms, the Green's f
 ```math
 \begin{align}
 G_{ij}(z) \equiv \langle c_i^{\dagger} [z \hat{I} - \hat{H}]^{-1} c_j \rangle
-\end{algin}
+\end{align}
 ```
 can be calculated by 
 ```math
 \begin{align}
+G_{ij}(z) = \left[ (z \hat{I} - \hat{H})^{-1} \right]_{ij}
 \end{align}
 ```
+The local density of states at site $i$ can be calculated by the Green's function: 
+```math
+\begin{align}
+N_i(\omega) = -\frac{1}{\pi} {\rm Im} \: \lim_{\eta \rightarrow 0+} G_{ii}(\omega + i \eta) 
+\end{align}
+```
+
+In this package, the Green's function can be calculated by 
+```julia
+z = 0.1 + 0.2im
+i = 1
+c1 = FermionOP(i)
+Gij = calc_greenfunction(ham, z, c1', c1)
+```
+with the use of the RSCG method. 
+Since the RSCG method can consider many complex frequencies simultaneously, we can calculate the Green's function with different frequencies $z_k$: 
+```julia
+num = 200
+zs = zeros(ComplexF64, num)
+ene = range(-6, 6, length=num)
+eta = 0.05
+for i = 1:num
+    zs[i] = ene[i] + im * eta
+end
+ix = Nx ÷ 2
+iy = ix
+i = (iy - 1) * Nx + ix
+c1 = FermionOP(i)
+Gij = calc_greenfunction(ham, zs, c1', c1)
+```
+
 
 
 # Examples
