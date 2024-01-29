@@ -367,7 +367,106 @@ Chebyshev with LKvectors: -0.17611751734430567
 
 ![ldos](https://github.com/cometscome/QuadraticHamiltonians.jl/assets/21115243/bde82aa4-0506-4d9e-8742-19dd61706b76)
 
+## self-consistent gap calculation
+```julia
+using QuadraticHamiltonians
+function make_hamiltonian(Nx, Ny, μ, Δs)
+    N = Nx * Ny
+    ham = Hamiltonian(N, isSC=true)
+    t = -1
+    hops = [(+1, 0), (-1, 0), (0, +1), (0, -1)]
+    for ix = 1:Nx
+        for iy = 1:Ny
+            i = (iy - 1) * Nx + ix
+            ci = FermionOP(i)
+            for (dx, dy) in hops
+                jx = ix + dx
+                jx += ifelse(jx > Nx, -Nx, 0)
+                jx += ifelse(jx < 1, Nx, 0)
+                jy = iy + dy
+                jy += ifelse(jy > Ny, -Ny, 0)
+                jy += ifelse(jy < 1, Ny, 0)
+                j = (jy - 1) * Nx + jx
+                cj = FermionOP(j)
+                ham += -1 * (ci' * cj - ci * cj')
+            end
+            ham += -μ * (ci' * ci - ci * ci')
+            ham += Δs[i] * ci' * ci' + Δs[i] * ci * ci
+        end
+    end
+    return ham
+end
 
+function update_hamiltonian!(ham, Δold, Δs)
+    N, _ = size(ham)
+    for i = 1:(N÷2)
+        ci = FermionOP(i)
+        ham += (Δs[i] - Δold[i]) * ci' * ci' + (Δs[i] - Δold[i]) * ci * ci
+    end
+end
+
+function main()
+    Nx = 24
+    Ny = 24
+    μ = -0.2
+    Δ0 = 0.5
+    Δs = Δ0 * ones(Nx * Ny)
+    Δsnew = similar(Δs)
+    T = 0.02
+    U = -2
+
+    ham = make_hamiltonian(Nx, Ny, μ, Δs)
+    m = Meanfields_solver(ham, T)
+
+    for it = 1:100
+        @time Gs = map(i -> calc_meanfields(m, FermionOP(i), FermionOP(i)), 1:Nx*Ny)
+        Δsnew .= real(U * Gs)
+        res = sum(abs.(Δsnew .- Δs)) / sum(abs.(Δs))
+        println("$(it)-th $(Δsnew[1]) $res")
+        if res < 1e-4
+            break
+        end
+        update_hamiltonian!(ham, Δs, Δsnew)
+        Δs .= Δsnew
+    end
+
+end
+main()
+```
+
+The output is 
+```
+The solver is the RSCG
+num. of Matsubara freqs. 34
+  3.081818 seconds (14.92 M allocations: 3.000 GiB, 7.47% gc time, 28.05% compilation time)
+1-th 0.43401688579960984 0.13196622709719913
+  2.425116 seconds (11.58 M allocations: 3.088 GiB, 4.43% gc time)
+2-th 0.4020473310731843 0.07365970445490454
+  2.556391 seconds (11.96 M allocations: 3.262 GiB, 4.12% gc time)
+3-th 0.3853252114191848 0.04159241583023033
+  2.628881 seconds (12.24 M allocations: 3.358 GiB, 4.02% gc time)
+4-th 0.3762161124243843 0.02364002840649464
+  2.708366 seconds (12.36 M allocations: 3.398 GiB, 4.26% gc time)
+5-th 0.37114204479276297 0.013487108372129082
+  2.765002 seconds (12.34 M allocations: 3.397 GiB, 4.81% gc time)
+6-th 0.36828006208588193 0.0077112866961116305
+  2.743782 seconds (12.56 M allocations: 3.476 GiB, 4.05% gc time)
+7-th 0.36665432701604384 0.0044143990509399635
+  2.723989 seconds (12.54 M allocations: 3.490 GiB, 3.88% gc time)
+8-th 0.36572710332447894 0.0025288823568850502
+  2.744749 seconds (12.73 M allocations: 3.520 GiB, 4.05% gc time)
+9-th 0.3651970461434803 0.001449321833805112
+  2.770678 seconds (12.65 M allocations: 3.515 GiB, 4.28% gc time)
+10-th 0.3648936376188999 0.0008308059042921653
+  2.741237 seconds (12.65 M allocations: 3.515 GiB, 4.07% gc time)
+11-th 0.36471983333293023 0.00047631387916426306
+  2.771782 seconds (12.67 M allocations: 3.514 GiB, 4.30% gc time)
+12-th 0.36462022832989466 0.0002730987087264538
+  2.748457 seconds (12.67 M allocations: 3.515 GiB, 4.08% gc time)
+13-th 0.36456313174463706 0.00015659133320500504
+  2.820919 seconds (12.69 M allocations: 3.518 GiB, 4.51% gc time)
+14-th 0.36453039805715926 8.978993383823577e-5
+```
 
 ## s-wave superconductor with spins
 

@@ -320,7 +320,7 @@ function display_quadratic(ham::Hamiltonian{T,N,true,num_internal_degree,num_sit
             j_isdag = true
         end
 
-        for ii = ham.matrix.colptr[j]:ham.matrix.colptr[j+1]
+        for ii = ham.matrix.colptr[j]:ham.matrix.colptr[j+1]-1
 
             if ii <= length(ham.matrix.rowval)
                 i = ham.matrix.rowval[ii]
@@ -363,7 +363,6 @@ end
 function display_quadratic(ham::Hamiltonian{T,N,false,num_internal_degree,num_sites}) where {T,N,num_internal_degree,num_sites}
     cdagcstring = ""
     for j = 1:N
-
         jinternal = (j - 1) % num_internal_degree + 1
         jsite = (j - jinternal) ÷ num_internal_degree + 1
         j_isdag = false
@@ -372,7 +371,6 @@ function display_quadratic(ham::Hamiltonian{T,N,false,num_internal_degree,num_si
         for ii = ham.matrix.colptr[j]:ham.matrix.colptr[j+1]-1
             if ii <= length(ham.matrix.rowval)
                 i = ham.matrix.rowval[ii]
-                println(i)
 
                 iinternal = (i - 1) % num_internal_degree + 1
                 isite = (i - iinternal) ÷ num_internal_degree + 1
