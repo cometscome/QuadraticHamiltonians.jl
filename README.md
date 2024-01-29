@@ -14,7 +14,7 @@ With the use of this package, you do not have to think about a matrix of the Ham
 We implemented two kinds of methods. 
 
 -  Chebyshev Polynomial method: Yuki Nagai, Yukihiro Ota, and Masahiko Machida, Efficient Numerical Self-Consistent Mean-Field Approach for Fermionic Many-Body Systems by Polynomial Expansion on Spectral Density, [J. Phys. Soc. Jpn. 81, 024710 (2012)](https://journals.jps.jp/doi/10.1143/JPSJ.81.024710)
--  Reduced-Shifted Conjugate-Gradient Method method: Yuki Nagai et al., Reduced-Shifted Conjugate-Gradient Method for a Green’s Function: Efficient Numerical Approach in a Nano-Structured Superconductor, [J. Phys. Soc. Jpn. 86, 014708 (2017)](https://journals.jps.jp/doi/10.7566/JPSJ.86.014708)
+-  Reduced-Shifted Conjugate-Gradient Method method: Yuki Nagai et al., Reduced-Shifted Conjugate-Gradient Method for a Green’s Function: Efficient Numerical Approach in a Nano-Structured Superconductor, [J. Phys. Soc. Jpn. 86, 014708 (2017)](https://journals.jps.jp/doi/10.7566/JPSJ.86.014708). In the RSCG method, we use the sparse modeling technique proposed by [SparseIR.jl](https://github.com/SpM-lab/SparseIR.jl). 
 
 And also we implemented the following method:
 - 1. LK-BdG solver: Yuki Nagai, N-independent Localized Krylov–Bogoliubov-de Gennes Method: Ultra-fast Numerical Approach to Large-scale Inhomogeneous Superconductors [J. Phys. Soc. Jpn. 89, 074703 (2020) ](https://journals.jps.jp/doi/10.7566/JPSJ.89.074703)
@@ -42,18 +42,142 @@ Now this package can
 - construct the matrix of the Hamiltonian.
 - display the creation and anihilation operators in the Hamiltonian.
 -  calculate meanfields defined as $\langle c_i^{\dagger} c_j \rangle$, $\langle c_i^{\dagger} c_j^{\dagger} \rangle$ , $\langle c_i c_j^{\dagger} \rangle$ and $\langle c_i c_j \rangle$. You can choose the Chebyshev polynomial method or RSCG method for calculating meanfields.  Now only a Hermitian Hamiltonian is supported. 
--  calculate greenfunctions defined as $G_{ij}(z) \equiv \langle c_i^{\dagger} [z \hat{I} - \hat{H}]^{-1} c_j \rangle = \left[ [z \hat{I} - \hat{H}]^{-1} \right]_{ij}$. Here $z$ is a complex frequency. Now only a Hermitian Hamiltonian is supported. 
+-  calculate Green's functions defined as $G_{ij}(z) \equiv \langle c_i^{\dagger} [z \hat{I} - \hat{H}]^{-1} c_j \rangle = \left[ [z \hat{I} - \hat{H}]^{-1} \right]_{ij}$. Here $z$ is a complex frequency. Now only a Hermitian Hamiltonian is supported. 
 
 
 # Install
 ```
 add https://github.com/cometscome/QuadraticHamiltonians.jl
 ```
-# How to use
+# How to construct Hamiltonians
+## Normal states with single orbital
+Let us consider a normal state 4-site Hamiltonian
+```
+julia> H = Hamiltonian(4)
+---------------------------------
+Hamiltonian: 
+Num. of sites: 4
+Num. of internal degree of freedom: 1
+H = 
+---------------------------------
+```
+We define operators
+```julia
+julia> c1 = FermionOP(1)
++C_{1,1}
 
-## Generate a matrix form 
+julia> c2 = FermionOP(2)
++C_{2,1}
+```
 
+Then we can add operators
+```julia
+julia> H += 2.0*c1'*c1 + 3*c2'*c2 + 2*c1'*c2 + 2*(c1'*c2)'
+---------------------------------
+Hamiltonian: 
+Num. of sites: 4
+Num. of internal degree of freedom: 1
+H = +2.0C_{1,1}^+C_{1,1} +2.0C_{2,1}^+C_{1,1} +2.0C_{1,1}^+C_{2,1} +3.0C_{2,1}^+C_{2,1} 
+---------------------------------
+```
+We can regard H as a matrix. So you can do like 
+```julia
+julia> x = rand(4)
+4-element Vector{Float64}:
+ 0.18622544459032153
+ 0.36202722147302
+ 0.9038045102532898
+ 0.8497382867289013
 
+julia> H*x
+4-element Vector{Float64}:
+ 1.096505332126683
+ 1.4585325535997031
+ 0.0
+ 0.0
+```
+
+If we want to consider the Hamiltonian whose elements are complex values, we define 
+```julia
+julia> H = Hamiltonian(ComplexF64,4)
+---------------------------------
+Hamiltonian: 
+Num. of sites: 4
+Num. of internal degree of freedom: 1
+H = 
+---------------------------------
+```
+And we can add operators:
+```julia
+julia> H += 2.0*c1'*c1 + 3*c2'*c2 + exp(0.2*im)*c1'*c2 + (exp(0.2*im)*c1'*c2)' 
+---------------------------------
+Hamiltonian: 
+Num. of sites: 4
+Num. of internal degree of freedom: 1
+H = +2.0C_{1,1}^+C_{1,1} +(0.9800665778412416 - 0.19866933079506122im)C_{2,1}^+C_{1,1} +(0.9800665778412416 + 0.19866933079506122im)C_{1,1}^+C_{2,1} +3.0C_{2,1}^+C_{2,1} 
+---------------------------------
+```
+
+## Normal states with multi orbitals
+If we want to consider internal degree of freedom such as spins, orbitals and bands, we can define 
+```julia
+julia> H = Hamiltonian(4,num_internal_degree=2)
+---------------------------------
+Hamiltonian: 
+Num. of sites: 4
+Num. of internal degree of freedom: 2
+H = 
+---------------------------------
+```
+Operators are defined as 
+```julia
+julia> c1up = FermionOP(1,1)
++C_{1,1}
+
+julia> c1down = FermionOP(1,2)
++C_{1,2}
+
+julia> c2down = FermionOP(2,2)
++C_{2,2}
+```
+
+## Superconducting states
+Let us use ```isSC``` to consider superconducting states. 
+```julia
+julia> H = Hamiltonian(4,isSC=true)
+---------------------------------
+Hamiltonian: 
+Num. of sites: 4
+Num. of internal degree of freedom: 1
+Superconducting state
+H = 
+---------------------------------
+```
+
+```julia
+julia> H += -1*(c1'*c1 - c1*c1') + 0.2*c2'c2' + (0.2*c2'*c2')'
+---------------------------------
+Hamiltonian: 
+Num. of sites: 4
+Num. of internal degree of freedom: 1
+Superconducting state
+H = -1.0C_{1,1}^+C_{1,1} +0.2C_{2,1}C_{2,1} +C_{1,1}C_{1,1}^+ +0.2C_{2,1}^+C_{2,1}^+ 
+---------------------------------
+```
+We can have a matrix form. 
+```julia
+julia> H_sp = construct_matrix(H)
+8×8 SparseArrays.SparseMatrixCSC{Float64, Int64} with 4 stored entries:
+ -1.0   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅ 
+   ⋅    ⋅    ⋅    ⋅    ⋅   0.2   ⋅    ⋅ 
+   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅ 
+   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅ 
+   ⋅    ⋅    ⋅    ⋅   1.0   ⋅    ⋅    ⋅ 
+   ⋅   0.2   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅ 
+   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅ 
+   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅ 
+```
+## Tight-binding model example
 
 ```julia
 using QuadraticHamiltonians
@@ -97,6 +221,61 @@ H = -1.0C_{1,1}^+C_{2,1} -1.0C_{1,1}^+C_{16,1} -1.0C_{2,1}^+C_{3,1} -1.0C_{2,1}^
 ⎢⠀⠀⠀⠈⠪⡢⡀⠀⎥
 ⎣⡀⠀⠀⠀⠀⠈⠪⡢⎦
 ```
+
+## 2-dimensional s-wave superconductor
+```julia
+μ = -1.5
+Nx = 128
+Ny = 128
+N = Nx * Ny
+Δ = 0.5
+ham = Hamiltonian(N, isSC=true)
+t = -1
+hops = [(+1, 0), (-1, 0), (0, +1), (0, -1)]
+for ix = 1:Nx
+    for iy = 1:Ny
+        i = (iy - 1) * Nx + ix
+        ci = FermionOP(i)
+        for (dx, dy) in hops
+            jx = ix + dx
+            jx += ifelse(jx > Nx, -Nx, 0)
+            jx += ifelse(jx < 1, Nx, 0)
+            jy = iy + dy
+            jy += ifelse(jy > Ny, -Ny, 0)
+            jy += ifelse(jy < 1, Ny, 0)
+            j = (jy - 1) * Nx + jx
+            cj = FermionOP(j)
+            ham += -1 * (ci' * cj - ci * cj')
+        end
+        ham += -μ * (ci' * ci - ci * ci')
+        ham += Δ * ci' * ci' + Δ * ci * ci
+    end
+end
+```
+
+# How to calculate meanfields
+You can calculate meanfields. 
+To calculate meanfields, we define the solver: 
+```julia
+T = 0.1
+m = Meanfields_solver(ham, T)
+```
+Then the RSCG method will be used. If we want to use the Chebyshev polynomial method, we define 
+```julia
+m = Meanfields_solver(ham, T, method="Chebyshev", nmax=200)
+```
+If we want to LK-Chebyshev polynomials method, we define 
+```julia
+m = Meanfields_solver(ham, T, method="Chebyshev", isLK=true, nmax=200)
+```
+
+For example, meanfield $\langle c_1 c_1 \rangle$ is calculated by
+```julia
+c1 = FermionOP(1)
+Gij0 = calc_meanfields(m, c1, c1) #<c1 c1>
+```
+
+# How to calculate Green's functions
 
 # Examples
 
