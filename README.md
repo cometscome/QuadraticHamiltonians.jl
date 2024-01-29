@@ -381,6 +381,7 @@ Chebyshev with LKvectors: -0.17611751734430567
 ## self-consistent gap calculation
 ```julia
 using QuadraticHamiltonians
+
 function make_hamiltonian(Nx, Ny, μ, Δs)
     N = Nx * Ny
     ham = Hamiltonian(N, isSC=true)
@@ -408,11 +409,12 @@ function make_hamiltonian(Nx, Ny, μ, Δs)
     return ham
 end
 
-function update_hamiltonian!(ham, Δold, Δs)
-    N, _ = size(ham)
+function update!(m, Δs)
+    N, _ = size(m.hamiltonian)
     for i = 1:(N÷2)
         ci = FermionOP(i)
-        ham += (Δs[i] - Δold[i]) * ci' * ci' + (Δs[i] - Δold[i]) * ci * ci
+        update_hamiltonian!(m, Δs[i], ci', ci')
+        update_hamiltonian!(m, Δs[i], ci, ci)
     end
 end
 
@@ -437,7 +439,7 @@ function main()
         if res < 1e-4
             break
         end
-        update_hamiltonian!(ham, Δs, Δsnew)
+        update!(m, Δsnew)
         Δs .= Δsnew
     end
 
@@ -449,34 +451,34 @@ The output is
 ```
 The solver is the RSCG
 num. of Matsubara freqs. 34
-  3.081818 seconds (14.92 M allocations: 3.000 GiB, 7.47% gc time, 28.05% compilation time)
-1-th 0.43401688579960984 0.13196622709719913
-  2.425116 seconds (11.58 M allocations: 3.088 GiB, 4.43% gc time)
-2-th 0.4020473310731843 0.07365970445490454
-  2.556391 seconds (11.96 M allocations: 3.262 GiB, 4.12% gc time)
-3-th 0.3853252114191848 0.04159241583023033
-  2.628881 seconds (12.24 M allocations: 3.358 GiB, 4.02% gc time)
-4-th 0.3762161124243843 0.02364002840649464
-  2.708366 seconds (12.36 M allocations: 3.398 GiB, 4.26% gc time)
-5-th 0.37114204479276297 0.013487108372129082
-  2.765002 seconds (12.34 M allocations: 3.397 GiB, 4.81% gc time)
-6-th 0.36828006208588193 0.0077112866961116305
-  2.743782 seconds (12.56 M allocations: 3.476 GiB, 4.05% gc time)
-7-th 0.36665432701604384 0.0044143990509399635
-  2.723989 seconds (12.54 M allocations: 3.490 GiB, 3.88% gc time)
-8-th 0.36572710332447894 0.0025288823568850502
-  2.744749 seconds (12.73 M allocations: 3.520 GiB, 4.05% gc time)
-9-th 0.3651970461434803 0.001449321833805112
-  2.770678 seconds (12.65 M allocations: 3.515 GiB, 4.28% gc time)
-10-th 0.3648936376188999 0.0008308059042921653
-  2.741237 seconds (12.65 M allocations: 3.515 GiB, 4.07% gc time)
-11-th 0.36471983333293023 0.00047631387916426306
-  2.771782 seconds (12.67 M allocations: 3.514 GiB, 4.30% gc time)
-12-th 0.36462022832989466 0.0002730987087264538
-  2.748457 seconds (12.67 M allocations: 3.515 GiB, 4.08% gc time)
-13-th 0.36456313174463706 0.00015659133320500504
-  2.820919 seconds (12.69 M allocations: 3.518 GiB, 4.51% gc time)
-14-th 0.36453039805715926 8.978993383823577e-5
+  1.357527 seconds (8.97 M allocations: 1.225 GiB, 7.59% gc time, 46.78% compilation time)
+1-th 0.43392863318462976 0.13214274366572432
+  0.827926 seconds (5.99 M allocations: 1.104 GiB, 5.64% gc time)
+2-th 0.40181627897040467 0.07400376230129402
+  0.881787 seconds (6.16 M allocations: 1.144 GiB, 5.09% gc time)
+3-th 0.38493556921008637 0.04201103156997562
+  0.884848 seconds (6.32 M allocations: 1.180 GiB, 5.40% gc time)
+4-th 0.37568124638585454 0.024041167724526982
+  0.891520 seconds (6.36 M allocations: 1.192 GiB, 5.27% gc time)
+5-th 0.3704883477225273 0.013822612441196765
+  0.889258 seconds (6.38 M allocations: 1.215 GiB, 4.45% gc time)
+6-th 0.3675358557663468 0.007969231662928523
+  0.904341 seconds (6.44 M allocations: 1.212 GiB, 5.19% gc time)
+7-th 0.36584446964213757 0.004601915465106033
+  0.946217 seconds (6.52 M allocations: 1.231 GiB, 5.29% gc time)
+8-th 0.36487138389829876 0.0026599130537329862
+  0.903315 seconds (6.49 M allocations: 1.224 GiB, 4.95% gc time)
+9-th 0.36431012784136424 0.001538238218849528
+  0.905315 seconds (6.52 M allocations: 1.232 GiB, 4.69% gc time)
+10-th 0.3639859317169275 0.0008898496406517458
+  0.904538 seconds (6.52 M allocations: 1.232 GiB, 4.80% gc time)
+11-th 0.3637985531159851 0.0005148569471265923
+  0.917017 seconds (6.56 M allocations: 1.240 GiB, 4.78% gc time)
+12-th 0.36369015468817556 0.0002979221928351472
+  0.945926 seconds (6.54 M allocations: 1.236 GiB, 5.33% gc time)
+13-th 0.36362744231704996 0.00017239402356417755
+  0.922917 seconds (6.50 M allocations: 1.225 GiB, 5.31% gc time)
+14-th 0.3635911839621331 9.976804879798009e-5
 ```
 
 ## s-wave superconductor with spins

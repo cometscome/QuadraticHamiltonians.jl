@@ -27,14 +27,46 @@ function make_hamiltonian(Nx, Ny, μ, Δs)
     return ham
 end
 
-function update_hamiltonian!(ham, Δold, Δs)
-    N, _ = size(ham)
+function update!(m, Δs)
+    N, _ = size(m.hamiltonian)
     for i = 1:(N÷2)
         ci = FermionOP(i)
-        ham += (Δs[i] - Δold[i]) * ci' * ci' + (Δs[i] - Δold[i]) * ci * ci
+        update_hamiltonian!(m, Δs[i], ci', ci')
+        update_hamiltonian!(m, Δs[i], ci, ci)
     end
 end
 
+function main2()
+
+    Nx = 24
+    Ny = 24
+    μ = -0.2
+    Δ0 = 0.5
+    Δs = Δ0 * ones(Nx * Ny)
+    Δsnew = similar(Δs)
+    T = 0.02
+    U = -2
+    aa = 10
+    nmax = 200
+    isLK = false
+
+    ham = make_hamiltonian(Nx, Ny, μ, Δs)
+    m = Meanfields_solver(ham, T, method="Chebyshev"; aa, nmax, isLK)
+
+    for it = 1:100
+        @time Gs = map(i -> calc_meanfields(m, FermionOP(i), FermionOP(i)), 1:Nx*Ny)
+        Δsnew .= real(U * Gs)
+        res = sum(abs.(Δsnew .- Δs)) / sum(abs.(Δs))
+        println("$(it)-th $(Δsnew[1]) $res")
+        if res < 1e-4
+            break
+        end
+        update!(m, Δsnew)
+        Δs .= Δsnew
+    end
+    ham = get_hamiltonian(m)
+
+end
 
 
 function main()
@@ -59,9 +91,10 @@ function main()
         if res < 1e-4
             break
         end
-        update_hamiltonian!(ham, Δs, Δsnew)
+        update!(m, Δsnew)
         Δs .= Δsnew
     end
 
 end
 main()
+main2()

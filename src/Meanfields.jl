@@ -23,16 +23,33 @@ function Meanfields_solver(ham::Hamiltonian{T1,N,isSC,num_internal_degree,num_si
             bb = 0.0
         end
         cheby = ChebyshevSolver(T, aa, bb; kargs...)
-        hamt = deepcopy(ham)
+        #hamt = deepcopy(ham)
         for i = 1:N
-            hamt.matrix[i, i] -= bb
+            ham.matrix[i, i] -= bb
         end
-        hamt.matrix ./= aa
-        return Meanfields_solver{typeof(cheby),typeof(ham)}(cheby, hamt)
+        ham.matrix ./= aa
+
+        return Meanfields_solver{typeof(cheby),typeof(ham)}(cheby, ham)
     else
         error("method $method is not supported yet")
     end
 end
+
+function get_hamiltonian(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}) where {M<:RSCGSolver,T,N,isSC,
+    num_internal_degree,num_sites}
+    return m.hamiltonian
+end
+
+function get_hamiltonian(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}) where {M<:ChebyshevSolver,T,N,isSC,
+    num_internal_degree,num_sites}
+    ham = deepcopy(m.hamiltonian)
+    ham.matrix .*= m.method.aa
+    for i = 1:N
+        ham.matrix[i, i] -= m.method.bb
+    end
+    return ham
+end
+export get_hamiltonian
 
 function calc_meanfields(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}, c1::FermionOP, c2::FermionOP) where {M,T,N,isSC,
     num_internal_degree,num_sites}
@@ -56,6 +73,8 @@ function calc_meanfields(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_interna
     return Gij0
 end
 
+
+
 function calc_greenfunction(ham::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}, zs::Vector{T2}, c1::FermionOP, c2::FermionOP) where {T,N,isSC,
     num_internal_degree,num_sites,T2<:Number}
     ii = (c1.site - 1) * num_internal_degree + c1.internal_index
@@ -76,6 +95,37 @@ function calc_greenfunction(ham::Hamiltonian{T,N,isSC,num_internal_degree,num_si
     return Gij
 end
 
+
+function update_hamiltonian!(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}, value, c1::FermionOP, c2::FermionOP) where {M<:RSCGSolver,T,N,isSC,
+    num_internal_degree,num_sites}
+
+    ii = (c1.site - 1) * num_internal_degree + c1.internal_index
+    jj = (c2.site - 1) * num_internal_degree + c2.internal_index
+    if isSC
+        ii += ifelse(c1.is_annihilation_operator, N, 0)
+        jj += ifelse(c2.is_annihilation_operator, 0, N)
+    else
+        @assert !c1.is_annihilation_operator && !c2.is_annihilation_operator "This is not C^+ C^+ form $c1 $c2"
+    end
+    m.hamiltonian.matrix[ii, jj] = value
+end
+
+function update_hamiltonian!(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}, value, c1::FermionOP, c2::FermionOP) where {M<:ChebyshevSolver,T,N,isSC,num_internal_degree,num_sites}
+
+    ii = (c1.site - 1) * num_internal_degree + c1.internal_index
+    jj = (c2.site - 1) * num_internal_degree + c2.internal_index
+    if isSC
+        ii += ifelse(c1.is_annihilation_operator, N, 0)
+        jj += ifelse(c2.is_annihilation_operator, 0, N)
+    else
+        @assert !c1.is_annihilation_operator && !c2.is_annihilation_operator "This is not C^+ C^+ form $c1 $c2"
+    end
+    m.hamiltonian.matrix[ii, jj] = value / m.method.aa
+    if ii == jj
+        m.hamiltonian.matrix[ii, jj] -= m.method.bb / m.method.aa
+    end
+end
+export update_hamiltonian!
 
 
 
