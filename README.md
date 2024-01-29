@@ -287,6 +287,17 @@ ham = get_hamiltonian(m)
 ```
 
 # How to calculate Green's functions or local density of states
+If the Hamiltonian is expressed as the sum of the quadratic terms, the Green's function defined as 
+```math
+\begin{align}
+G_{ij}(z) \equiv \langle c_i^{\dagger} [z \hat{I} - \hat{H}]^{-1} c_j \rangle
+\end{algin}
+```
+can be calculated by 
+```math
+\begin{align}
+\end{align}
+```
 
 
 # Examples
