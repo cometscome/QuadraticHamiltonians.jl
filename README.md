@@ -264,7 +264,7 @@ Then the RSCG method will be used. If we want to use the Chebyshev polynomial me
 ```julia
 m = Meanfields_solver(ham, T, method="Chebyshev", nmax=200)
 ```
-If we want to LK-Chebyshev polynomials method, we define 
+If we want to use the LK-Chebyshev polynomial method, we define 
 ```julia
 m = Meanfields_solver(ham, T, method="Chebyshev", isLK=true, nmax=200)
 ```
@@ -275,7 +275,8 @@ c1 = FermionOP(1)
 Gij0 = calc_meanfields(m, c1, c1) #<c1 c1>
 ```
 
-# How to calculate Green's functions
+# How to calculate Green's functions or local density of states
+
 
 # Examples
 
