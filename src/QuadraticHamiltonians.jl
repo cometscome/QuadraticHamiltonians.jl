@@ -221,9 +221,19 @@ end
 Base.size(h::Hamiltonian) = size(h.matrix)
 Base.getindex(A::Hamiltonian, i::Int) = getindex(A.matrix, i)
 Base.getindex(A::Hamiltonian, I::Vararg{Int,N}) where {N} = getindex(A.matrix, I)
-Base.setindex!(A::Hamiltonian, v, i::Int) = setindex!(A.matrix, v, i)
-Base.setindex!(A::Hamiltonian, v, I::Vararg{Int,N}) where {N} = setindex!(A.matrix, v, I)
+Base.getindex(A::Hamiltonian, I...) = getindex(A.matrix, I...)
 
+
+function Base.setindex!(A::Hamiltonian, v, i::Int)
+    A.matrix[i] = v
+end
+function Base.setindex!(A::Hamiltonian, v, I::Vararg{Int,N}) where {N}
+    #println(I)
+    A.matrix[I...] = v
+end
+function Base.setindex!(A::Hamiltonian, X, I...)
+    A.matrix[I...] = X
+end
 
 function Hamiltonian(num_sites; num_internal_degree=1, isSC=false)
     Hamiltonian(Float64, num_sites; num_internal_degree, isSC)

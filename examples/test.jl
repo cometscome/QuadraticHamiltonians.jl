@@ -15,6 +15,7 @@ function test()
     display(H)
     H -= 2 * c3' * c1 + 0.3 * c4' * c3
     display(H)
+    H[2, 1] = 21
     H[c3', c1] = 42
     display(H)
 
