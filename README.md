@@ -80,6 +80,13 @@ Num. of internal degree of freedom: 1
 H = +2.0C_{1,1}^+C_{1,1} +2.0C_{2,1}^+C_{1,1} +2.0C_{1,1}^+C_{2,1} +3.0C_{2,1}^+C_{2,1} 
 ---------------------------------
 ```
+There are two different ways for setting a value: 
+```julia
+H[2, 1] = 21
+H[c3', c1] = 42
+```
+
+
 We can regard H as a matrix. So you can do like 
 ```julia
 julia> x = rand(4)
