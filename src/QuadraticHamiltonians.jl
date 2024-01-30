@@ -94,14 +94,14 @@ function Base.:*(h1::QuadraticOPs{T1}, a::Number) where {T1}
 end
 
 function Base.:+(h1::QuadraticOPs{T1}, h2::QuadraticOPs{T2}) where {T1,T2}
-    return Base.:+(h1::QuadraticOPs{T1}, h2::QuadraticOPs{T2}, +1)
+    return quadratic_plus(h1::QuadraticOPs{T1}, h2::QuadraticOPs{T2}, +1)
 end
 
 function Base.:-(h1::QuadraticOPs{T1}, h2::QuadraticOPs{T2}) where {T1,T2}
-    return Base.:+(h1::QuadraticOPs{T1}, h2::QuadraticOPs{T2}, -1)
+    return quadratic_plus(h1::QuadraticOPs{T1}, h2::QuadraticOPs{T2}, -1)
 end
 
-function Base.:+(h1::QuadraticOPs{T1}, h2::QuadraticOPs{T2}, sign::Number) where {T1,T2}
+function quadratic_plus(h1::QuadraticOPs{T1}, h2::QuadraticOPs{T2}, sign::Number) where {T1,T2}
     T = T1
     if T2 <: Complex
         T = ComplexF64
@@ -237,7 +237,7 @@ function Hamiltonian(T::DataType, num_sites; num_internal_degree=1, isSC=false)
     return Hamiltonian{T,N,isSC,num_internal_degree,num_sites}(matrix)
 end
 
-function Base.:+(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}, sign::Number) where {T1,T2,N,isSC,num_internal_degree,num_sites}
+function hamiltonian_plus(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}, sign::Number) where {T1,T2,N,isSC,num_internal_degree,num_sites}
     for (i, operator) in enumerate(term.operators)
         c1 = operator[1]
         c2 = operator[2]
@@ -258,13 +258,28 @@ function Base.:+(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::
 end
 
 function Base.:+(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}) where {T1,T2,N,isSC,num_internal_degree,num_sites}
-    return Base.:+(h, term, +1)
+    return hamiltonian_plus(h, term, +1)
 end
 
 function Base.:-(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}) where {T1,T2,N,isSC,num_internal_degree,num_sites}
-    return Base.:+(h, term, -1)
+    return hamiltonian_plus(h, term, -1)
 end
 
+function get_coefficient(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites},
+    c1::FermionOP, c2::FermionOP) where {T1,N,isSC,num_internal_degree,num_sites}
+
+    ii = (c1.site - 1) * num_internal_degree + c1.internal_index
+    jj = (c2.site - 1) * num_internal_degree + c2.internal_index
+    if isSC
+        ii += ifelse(c1.is_annihilation_operator, N, 0)
+        jj += ifelse(c2.is_annihilation_operator, 0, N)
+    else
+        @assert !c1.is_annihilation_operator && c2.is_annihilation_operator "This is not C^+ C form $c1 $c2"
+    end
+    return h.matrix[ii, jj]
+end
+
+Base.getindex(A::Hamiltonian, c1::FermionOP, c2::FermionOP) = get_coefficient(A, c1, c2)
 
 
 

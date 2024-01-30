@@ -1,5 +1,4 @@
-using Distributed
-@everywhere using QuadraticHamiltonians
+using QuadraticHamiltonians
 
 function make_TSC_hamiltonian(Nx, Ny, μ, Δs, h, α, isPBC)
     N = Nx * Ny
@@ -77,7 +76,6 @@ end
 
 
 
-
 function main()
     Nx = 16
     Ny = 16
@@ -89,13 +87,13 @@ function main()
     U = -5.6
     h = 1
     α = 1
-    isPBC = false
 
+    isPBC = false
     ham = make_TSC_hamiltonian(Nx, Ny, μ, Δs, h, α, isPBC)
     m = Meanfields_solver(ham, T)
 
     for it = 1:100
-        @time Gs = pmap(i -> calc_meanfields(m, FermionOP(i, 1), FermionOP(i, 2)), 1:Nx*Ny)
+        @time Gs = map(i -> calc_meanfields(m, FermionOP(i, 1), FermionOP(i, 2)), 1:Nx*Ny)
         Δsnew .= real(U * Gs)
         res = sum(abs.(Δsnew .- Δs)) / sum(abs.(Δs))
         println("$(it)-th $(Δsnew[1]) $res")

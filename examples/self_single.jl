@@ -18,7 +18,7 @@ function make_hamiltonian(Nx, Ny, μ, Δs)
                 jy += ifelse(jy < 1, Ny, 0)
                 j = (jy - 1) * Nx + jx
                 cj = FermionOP(j)
-                ham += -1 * (ci' * cj - ci * cj')
+                ham += -1 * (ci' * cj - cj * ci')
             end
             ham += -μ * (ci' * ci - ci * ci')
             ham += Δs[i] * ci' * ci' + Δs[i] * ci * ci

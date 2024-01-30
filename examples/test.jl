@@ -11,9 +11,12 @@ function test()
     display(0.3 * c4' * c3)
     display(im * c1' * c4)
     H += -1 * c1' * c1 + 2 * c3' * c1 + 0.3 * c4' * c3
+    println(H[c4', c3])
     display(H)
     H -= 2 * c3' * c1 + 0.3 * c4' * c3
     display(H)
+
+
 end
 test()
 
@@ -105,7 +108,8 @@ function main2()
                     jy += ifelse(jy < 1, Ny, 0)
                     j = (jy - 1) * Nx + jx
                     cj = FermionOP(j, jspin)
-                    ham += -1 * (ci' * cj - ci * cj')
+                    #ham += -1 * (ci' * cj - ci * cj')
+                    ham += -1 * (ci' * cj - cj * ci')
                 end
                 ham += -μ * (ci' * ci - ci * ci')
             end
