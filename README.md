@@ -97,6 +97,17 @@ julia> H*x
  0.0
 ```
 
+To get elements of the Hamiltonian, you can do like
+```julia
+a = H[1,2]
+```
+or 
+```julia
+c1 = FermionOP(1)
+c2 = FermionOP(2)
+a = H[c1',c2]
+```
+
 If we want to consider the Hamiltonian whose elements are complex values, we define 
 ```julia
 julia> H = Hamiltonian(ComplexF64,4)
