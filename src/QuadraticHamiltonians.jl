@@ -221,6 +221,8 @@ end
 Base.size(h::Hamiltonian) = size(h.matrix)
 Base.getindex(A::Hamiltonian, i::Int) = getindex(A.matrix, i)
 Base.getindex(A::Hamiltonian, I::Vararg{Int,N}) where {N} = getindex(A.matrix, I)
+Base.setindex!(A::Hamiltonian, v, i::Int) = setindex!(A.matrix, v, i)
+Base.setindex!(A::Hamiltonian, v, I::Vararg{Int,N}) where {N} = setindex!(A.matrix, v, I)
 
 
 function Hamiltonian(num_sites; num_internal_degree=1, isSC=false)
@@ -281,6 +283,19 @@ end
 
 Base.getindex(A::Hamiltonian, c1::FermionOP, c2::FermionOP) = get_coefficient(A, c1, c2)
 
+function Base.setindex!(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, v,
+    c1::FermionOP, c2::FermionOP) where {T1,N,isSC,num_internal_degree,num_sites}
+
+    ii = (c1.site - 1) * num_internal_degree + c1.internal_index
+    jj = (c2.site - 1) * num_internal_degree + c2.internal_index
+    if isSC
+        ii += ifelse(c1.is_annihilation_operator, N, 0)
+        jj += ifelse(c2.is_annihilation_operator, 0, N)
+    else
+        @assert !c1.is_annihilation_operator && c2.is_annihilation_operator "This is not C^+ C form $c1 $c2"
+    end
+    h.matrix[ii, jj] = v
+end
 
 
 using LinearAlgebra

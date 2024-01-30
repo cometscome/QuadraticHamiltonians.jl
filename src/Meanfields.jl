@@ -105,7 +105,8 @@ function update_hamiltonian!(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_int
         ii += ifelse(c1.is_annihilation_operator, N, 0)
         jj += ifelse(c2.is_annihilation_operator, 0, N)
     else
-        @assert !c1.is_annihilation_operator && !c2.is_annihilation_operator "This is not C^+ C^+ form $c1 $c2"
+        @assert !c1.is_annihilation_operator && c2.is_annihilation_operator "This is not C^+ C form $c1 $c2"
+        #@assert !c1.is_annihilation_operator && !c2.is_annihilation_operator "This is not C^+ C^+ form $c1 $c2"
     end
     m.hamiltonian.matrix[ii, jj] = value
 end
@@ -118,7 +119,9 @@ function update_hamiltonian!(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_int
         ii += ifelse(c1.is_annihilation_operator, N, 0)
         jj += ifelse(c2.is_annihilation_operator, 0, N)
     else
-        @assert !c1.is_annihilation_operator && !c2.is_annihilation_operator "This is not C^+ C^+ form $c1 $c2"
+        #@assert !c1.is_annihilation_operator && !c2.is_annihilation_operator "This is not C^+ C^+ form $c1 $c2"
+        @assert !c1.is_annihilation_operator && c2.is_annihilation_operator "This is not C^+ C form $c1 $c2"
+
     end
     m.hamiltonian.matrix[ii, jj] = value / m.method.aa
     if ii == jj
