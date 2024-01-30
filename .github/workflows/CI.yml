@@ -4,6 +4,9 @@ on:
     branches:
       - main
     tags: ['*']
+    paths-ignore:
+      - '**.md'
+      - '**.yml'
   pull_request:
   workflow_dispatch:
 concurrency:
