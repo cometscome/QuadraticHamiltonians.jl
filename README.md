@@ -5,7 +5,6 @@
 [![Build Status](https://github.com/cometscome/QuadraticHamiltonians.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/cometscome/QuadraticHamiltonians.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 
-This is an alpha version. 
 
 This calculates meanfields of the Hamiltonian with quadratic terms in superconductors. 
 With the use of this package, you do not have to think about a matrix of the Hamiltonian that you want to consider. To construct the Hamiltonian, just add the operators. 
@@ -19,7 +18,6 @@ We implemented two kinds of methods.
 And also we implemented the following method:
 - 1. LK-BdG solver: Yuki Nagai, N-independent Localized Krylov–Bogoliubov-de Gennes Method: Ultra-fast Numerical Approach to Large-scale Inhomogeneous Superconductors [J. Phys. Soc. Jpn. 89, 074703 (2020) ](https://journals.jps.jp/doi/10.7566/JPSJ.89.074703)
  
-Please note that this is an alpha version. 
 
 We consider the Hamiltonian only with quadratic form terms in real space.
 ```math
