@@ -20,6 +20,7 @@ RSCG = "0.1"
 QuadGK = "2"
 SparseIR = "1"
 KrylovKit = "0.6"
+BenchmarkTools = "1"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
