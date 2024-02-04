@@ -45,7 +45,7 @@ Now this package can
 
 # Install
 ```
-add https://github.com/cometscome/QuadraticHamiltonians.jl
+add QuadraticHamiltonians
 ```
 # How to construct Hamiltonians
 ## Normal states with single orbital
