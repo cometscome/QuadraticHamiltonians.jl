@@ -57,10 +57,15 @@ function Projector(ham::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, ; 
         end
 
 
+        if :eps in keys(kargs)
+            eps = values(kargs).eps
+        else
+            eps = 1e-14
+        end
 
 
 
-        p = ContourProjector(Emin, α, Nq)
+        p = ContourProjector(Emin, α, Nq,eps)
         return Projector{typeof(p),typeof(ham)}(p, ham)
     else
         error("method $method is not supported yet")
@@ -165,16 +170,17 @@ function make_C(p::Projector{M,H}, isite, Nx; debugmode=false) where {M,T,N,isSC
         Ci = -4pi * imag(tempvector1[i])
         C += Ci
         #println(Ci)
-
-        e .= 0
-        e[i+num_internal_degree*num_sites] = 1
-        apply_Q!(p, tempvector1, e)
-        mul!(tempvector2, Y, tempvector1)
-        apply_P!(p, tempvector1, tempvector2)
-        mul!(tempvector2, X, tempvector1)
-        apply_Q!(p, tempvector1, tempvector2)
-        Ci = -4pi * imag(tempvector1[i+num_internal_degree*num_sites])
-        C += Ci
+        if p.hamiltonian.isSC
+            e .= 0
+            e[i+num_internal_degree*num_sites] = 1
+            apply_Q!(p, tempvector1, e)
+            mul!(tempvector2, Y, tempvector1)
+            apply_P!(p, tempvector1, tempvector2)
+            mul!(tempvector2, X, tempvector1)
+            apply_Q!(p, tempvector1, tempvector2)
+            Ci = -4pi * imag(tempvector1[i+num_internal_degree*num_sites])
+            C += Ci
+        end
 
         #println(Ci)
 
