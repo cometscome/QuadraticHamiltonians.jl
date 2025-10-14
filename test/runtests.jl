@@ -6,6 +6,274 @@ using KrylovKit
 using SparseArrays
 using InteractiveUtils
 
+const σ0 = [1 0
+    0 1]
+const σx = [0 1
+    1 0]
+const σy = [0 -im
+    im 0]
+const σz = [1 0
+    0 -1]
+
+function make_x_plushop(Nx, Ny, BC)
+    N = Nx * Ny
+    Txhop = spzeros(Int64, N, N)
+    for ix = 1:Nx
+        for iy = 1:Ny
+            i = (iy - 1) * Nx + ix
+            jx = ix + 1
+            jy = iy
+            if BC == "PBC"
+                jx += ifelse(jx > Nx, -Nx, 0)
+            elseif BC == "OBC"
+            else
+                error("BC = $BC is not supported. Use PBC or OBC")
+            end
+            if 1 <= jx <= Nx
+                j = (jy - 1) * Nx + jx
+                Txhop[i, j] = 1
+            end
+        end
+    end
+    return Txhop
+end
+
+function make_x_minushop(Nx, Ny, BC)
+    N = Nx * Ny
+    Txhop = spzeros(Int64, N, N)
+    for ix = 1:Nx
+        for iy = 1:Ny
+            i = (iy - 1) * Nx + ix
+            jx = ix - 1
+            jy = iy
+            if BC == "PBC"
+                jx += ifelse(jx < 1, Nx, 0)
+            elseif BC == "OBC"
+            else
+                error("BC = $BC is not supported. Use PBC or OBC")
+            end
+            if 1 <= jx <= Nx
+                j = (jy - 1) * Nx + jx
+                Txhop[i, j] = 1
+            end
+        end
+    end
+    return Txhop
+end
+
+function make_y_plushop(Nx, Ny, BC)
+    N = Nx * Ny
+    Tyhop = spzeros(Int64, N, N)
+    for ix = 1:Nx
+        for iy = 1:Ny
+            i = (iy - 1) * Nx + ix
+            jx = ix
+            jy = iy + 1
+            if BC == "PBC"
+                jy += ifelse(jy > Ny, -Ny, 0)
+            elseif BC == "OBC"
+            else
+                error("BC = $BC is not supported. Use PBC or OBC")
+            end
+            if 1 <= jy <= Ny
+                j = (jy - 1) * Nx + jx
+                Tyhop[i, j] = 1
+            end
+        end
+    end
+    return Tyhop
+end
+
+function make_y_minushop(Nx, Ny, BC)
+    N = Nx * Ny
+    Tyhop = spzeros(Int64, N, N)
+    for ix = 1:Nx
+        for iy = 1:Ny
+            i = (iy - 1) * Nx + ix
+            jx = ix
+            jy = iy - 1
+            if BC == "PBC"
+                jy += ifelse(jy < 1, Ny, 0)
+            elseif BC == "OBC"
+            else
+                error("BC = $BC is not supported. Use PBC or OBC")
+            end
+            if 1 <= jy <= Ny
+                j = (jy - 1) * Nx + jx
+                Tyhop[i, j] = 1
+            end
+        end
+    end
+    return Tyhop
+end
+
+
+function make_TSC_hamiltonian(Nx, Ny, μ, Δs, h, α, isxPBC, isyPBC)
+    N = Nx * Ny
+    ham = Hamiltonian(ComplexF64, N, num_internal_degree=2, isSC=true)
+    hops = [(+1, 0), (-1, 0), (0, +1), (0, -1)]
+    for ix = 1:Nx
+        for iy = 1:Ny
+            i = (iy - 1) * Nx + ix
+            for ispin = 1:2
+                ci = FermionOP(i, ispin)
+                σy = ifelse(ispin == 1, -im, im)
+                σx = 1
+                σz = ifelse(ispin == 1, 1, -1)
+
+                for (dx, dy) in hops
+                    jx = ix + dx
+                    if isxPBC
+                        jx += ifelse(jx > Nx, -Nx, 0)
+                        jx += ifelse(jx < 1, Nx, 0)
+                    end
+                    jy = iy + dy
+                    if isyPBC
+                        jy += ifelse(jy > Ny, -Ny, 0)
+                        jy += ifelse(jy < 1, Ny, 0)
+                    end
+
+                    if 1 <= jx <= Nx && 1 <= jy <= Ny
+                        j = (jy - 1) * Nx + jx
+                        jspin = ispin
+                        cj = FermionOP(j, jspin)
+
+                        ham += -1 * (ci' * cj - cj * ci')
+
+                        jspin = ifelse(ispin == 1, 2, 1)
+                        cj = FermionOP(j, jspin)
+
+                        if dy == 0
+                            if dx == 1
+                                ham += (α / (2im)) * (ci' * cj - cj * ci') * σy
+                            elseif dx == -1
+                                ham += -1 * (α / (2im)) * (ci' * cj - cj * ci') * σy
+                            end
+                        elseif dx == 0
+                            if dy == 1
+                                ham += (α / (2im)) * (ci' * cj - cj * ci') * σx
+                            elseif dy == -1
+                                ham += -1 * (α / (2im)) * (ci' * cj - cj * ci') * σx
+                            end
+                        end
+                    end
+                end
+                ham += (-μ - h * σz) * (ci' * ci - ci * ci')
+            end
+            ciup = FermionOP(i, 1)
+            cidown = FermionOP(i, 2)
+            ham += Δs[i] * ciup' * cidown' + Δs[i] * cidown * ciup
+            ham += -Δs[i] * cidown' * ciup' - Δs[i] * ciup * cidown
+        end
+    end
+
+
+    return ham
+end
+
+function make_Δtsc(Δ)
+    Nx, Ny = size(Δ)
+    N = Nx * Ny
+    Δmat = spzeros(ComplexF64, N, N)
+    for ix = 1:Nx
+        for iy = 1:Ny
+            i = (iy - 1) * Nx + ix
+            Δmat[i, i] = Δ[ix, iy]
+        end
+    end
+    return kron(Δmat, im * σy)
+end
+
+function make_Htsc_normal(Nx, Ny, μ, BC, h, α)
+    N = Nx * Ny
+    Tx_plushop = make_x_plushop(Nx, Ny, BC)
+    Tx_minushop = make_x_minushop(Nx, Ny, BC)
+    Ty_plushop = make_y_plushop(Nx, Ny, BC)
+    Ty_minushop = make_y_minushop(Nx, Ny, BC)
+    HN = kron(sparse(I, N, N) * (-μ), σ0)
+    HN += kron(sparse(I, N, N) * (-h), σz) #Zeeman magnetic field
+    t = 1.0
+
+    HN += kron(-t * (Tx_plushop + Tx_minushop + Ty_plushop + Ty_minushop), σ0)
+
+    Hax = kron((α / (2im)) * (Tx_plushop - Tx_minushop), σy)
+    HN += Hax
+    Hay = kron((α / (2im)) * (Ty_plushop - Ty_minushop), σx)
+    HN += Hay
+
+    return HN
+end
+
+function make_Htsc_sc(Nx, Ny, μ, Δ, BC, h, α)
+    HN = make_Htsc_normal(Nx, Ny, μ, BC, h, α)
+    matΔ = make_Δtsc(Δ)
+    H = [
+        HN matΔ
+        matΔ' -conj.(HN)
+    ]
+    return H
+end
+
+
+function testTSC()
+    Nx = 16
+    Ny = 16
+    μ = 3.5
+    Δ0 = 1#0.35
+    Δs = Δ0 * ones(Nx * Ny)
+    Δsnew = similar(Δs)
+    T = 0.01
+    U = -5.6
+    h = 2
+    α = 1
+
+    isxPBC = false
+    isyPBC = false
+    BC = "OBC"
+    num_internal_degree = 2
+    H = make_Htsc_sc(Nx, Ny, μ, Δ0 * ones(Nx, Ny), BC, h, α)
+    ham = Hamiltonian(H, Nx * Ny; num_internal_degree)
+    #ham = make_TSC_hamiltonian(Nx, Ny, μ, Δs, h, α, isxPBC, isyPBC)
+
+    #diffH = H - ham.matrix
+    #display(diffH)
+    #=
+
+    n, _ = size(H)
+    for i = 1:n
+        for j = 1:n
+            if abs(H[i, j]) > 1e-5
+                if abs(H[i, j] - ham.matrix[i, j]) > 1e-6
+                    println("$i $j $(H[i,j]) $(ham.matrix[i,j])")
+                end
+            end
+            if abs(ham.matrix[i, j]) > 1e-5
+                if abs(H[i, j] - ham.matrix[i, j]) > 1e-6
+                    println("$i $j $(H[i,j]) $(ham.matrix[i,j])")
+                end
+            end
+        end
+    end
+    =#
+    #return
+
+    projector = Projector(ham)
+    debugmode = false
+    fp = open("test0.txt", "w")
+    for ix = 1:Nx
+        for iy = 1:Ny
+            i = (iy - 1) * Nx + ix
+            #for i = 1:Nx*Ny
+            C = make_C(projector, i, Nx; debugmode)
+            println("$i $C")
+            println(fp, "$ix $iy $(real(C))")
+        end
+        println(fp, "\t")
+    end
+    close(fp)
+
+end
+
 function test5()
 
     μ = -1.5
@@ -325,5 +593,6 @@ end
     #test2()
     #test3()
     ##test4()
-    test5()
+    #test5()
+    #testTSC()
 end
