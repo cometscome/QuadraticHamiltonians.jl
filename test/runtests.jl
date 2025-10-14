@@ -216,8 +216,8 @@ end
 
 
 function testTSC()
-    Nx = 16
-    Ny = 16
+    Nx = 16 * 2
+    Ny = 16 * 2
     μ = 3.5
     Δ0 = 1#0.35
     Δs = Δ0 * ones(Nx * Ny)
@@ -257,9 +257,39 @@ function testTSC()
     =#
     #return
 
-    projector = Projector(ham)
+    #projector = Projector(ham)
+    method = "Contour"
+    projector = Projector(ham; method, Nq=10)
+    method = "Exact"
+    #projector2 = Projector(ham; method)
     debugmode = false
-    fp = open("test0.txt", "w")
+    fp = open("Nqdep.txt", "w")
+
+    ix = Nx ÷ 2
+    iy = Ny ÷ 2
+    i = (iy - 1) * Nx + ix
+    for Nq in [10, 50, 100, 150, 200, 300, 400, 500]
+        method = "Contour"
+        projector = Projector(ham; method, Nq)
+        C = make_C(projector, i, Nx; debugmode)
+        println("$Nq $(real(C))")
+        println(fp, "$Nq $(real(C))")
+        @time C = make_C(projector, i, Nx; debugmode)
+
+    end
+    close(fp)
+
+    C = make_C(projector, i, Nx; debugmode)
+    println("$i $C")
+
+    projector2 = Projector(ham; method)
+    C = make_C(projector2, i, Nx; debugmode)
+    println("$i $C")
+    return
+
+
+
+    fp = open("test2.txt", "w")
     for ix = 1:Nx
         for iy = 1:Ny
             i = (iy - 1) * Nx + ix
@@ -267,6 +297,9 @@ function testTSC()
             C = make_C(projector, i, Nx; debugmode)
             println("$i $C")
             println(fp, "$ix $iy $(real(C))")
+            #C = make_C(projector2, i, Nx; debugmode)
+            #println("$i $C")
+            #println(fp, "$ix $iy $(real(C))")
         end
         println(fp, "\t")
     end
@@ -594,5 +627,5 @@ end
     #test3()
     ##test4()
     #test5()
-    #testTSC()
+    testTSC()
 end

@@ -15,6 +15,7 @@ export ChebyshevSolver
 include("./meanfields/Meanfields.jl")
 export Meanfields_solver
 
-include("./projection/projection.jl")
+include("./projection/Projection.jl")
+include("./projection/ContourProjection.jl")
 
 end

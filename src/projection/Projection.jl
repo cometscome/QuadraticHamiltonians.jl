@@ -5,8 +5,8 @@ struct Projector{M,H}
 end
 export Projector
 
-function Projector(ham::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, ; method="exact", kargs...) where {T1,N,isSC,num_internal_degree,num_sites}
-    if method == "exact"
+function Projector(ham::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, ; method="Exact", kargs...) where {T1,N,isSC,num_internal_degree,num_sites}
+    if method == "Exact"
         println("The exact diagonalization method is used")
         exact = ExactProjector(ham)
         return Projector{typeof(exact),typeof(ham)}(exact, ham)
@@ -31,6 +31,37 @@ function Projector(ham::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, ; 
         ham.matrix ./= aa
 
         return Projector{typeof(kpm),typeof(ham)}(kpm, ham)
+    elseif method == "Contour"
+        dim = get_dim(ham)
+        println("The solver is the contour integral Method")
+        if :Emin in keys(kargs)
+            Emin = values(kargs).Emin
+        else
+            Emin = -10
+        end
+
+
+
+
+
+        if :α in keys(kargs)
+            α = values(kargs).α
+        else
+            α = 0.1
+        end
+
+        if :Nq in keys(kargs)
+            Nq = values(kargs).Nq
+        else
+            Nq = 100
+        end
+
+
+
+
+
+        p = ContourProjector(Emin, α, Nq)
+        return Projector{typeof(p),typeof(ham)}(p, ham)
     else
         error("method $method is not supported yet")
     end
