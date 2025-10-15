@@ -1,8 +1,11 @@
 
 using SparseArrays
 
-struct Hamiltonian{T,N,isSC,num_internal_degree,num_sites} <: AbstractMatrix{T}
+struct Hamiltonian{T,isSC} <: AbstractMatrix{T}
     matrix::SparseMatrixCSC{T,Int64}
+    N::Int64
+    num_internal_degree::Int64
+    num_sites::Int64
 end
 
 Base.size(h::Hamiltonian) = size(h.matrix)
@@ -26,6 +29,7 @@ function get_dim(A::Hamiltonian)
     n, _ = size(A.matrix)
     return n
 end
+export get_dim
 
 function Hamiltonian(num_sites; num_internal_degree=1, isSC=false)
     Hamiltonian(Float64, num_sites; num_internal_degree, isSC)
@@ -43,7 +47,7 @@ function Hamiltonian(matrix::AbstractMatrix, num_sites; num_internal_degree=1)
     end
     T = eltype(matrix)
     N = num_sites * num_internal_degree
-    return Hamiltonian{T,N,isSC,num_internal_degree,num_sites}(matrixSP)
+    return Hamiltonian{T,isSC}(matrixSP,N,num_internal_degree,num_sites)
 end
 
 function Hamiltonian(T::DataType, num_sites; num_internal_degree=1, isSC=false)
@@ -53,10 +57,21 @@ function Hamiltonian(T::DataType, num_sites; num_internal_degree=1, isSC=false)
     else
         matrix = spzeros(T, N, N)
     end
-    return Hamiltonian{T,N,isSC,num_internal_degree,num_sites}(matrix)
+
+    return Hamiltonian{T,isSC}(matrix,N,num_internal_degree ,num_sites)
 end
 
-function hamiltonian_plus(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}, sign::Number) where {T1,T2,N,isSC,num_internal_degree,num_sites}
+get_num_internal_degree(h::Hamiltonian) = h.num_internal_degree
+get_num_sites(h::Hamiltonian) = h.num_sites
+get_N(h::Hamiltonian) = h.N
+
+function hamiltonian_plus(h::Hamiltonian{T1,isSC}, term::QuadraticOPs{T2}, sign::Number) where {T1,T2,isSC}
+
+    num_internal_degree = get_num_internal_degree(h)
+    num_sites = get_num_sites(h)
+    N = get_N(h)
+
+    
     for (i, operator) in enumerate(term.operators)
         c1 = operator[1]
         c2 = operator[2]
@@ -73,19 +88,22 @@ function hamiltonian_plus(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites
         end
         h.matrix[ii, jj] += sign * term.values[i]
     end
-    Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}(h.matrix)
+    Hamiltonian{T1,isSC}(h.matrix,N,num_internal_degree,num_sites)
 end
 
-function Base.:+(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}) where {T1,T2,N,isSC,num_internal_degree,num_sites}
+function Base.:+(h::Hamiltonian{T1,isSC}, term::QuadraticOPs{T2}) where {T1,T2,isSC}
     return hamiltonian_plus(h, term, +1)
 end
 
-function Base.:-(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, term::QuadraticOPs{T2}) where {T1,T2,N,isSC,num_internal_degree,num_sites}
+function Base.:-(h::Hamiltonian{T1,isSC}, term::QuadraticOPs{T2}) where {T1,T2,isSC}
     return hamiltonian_plus(h, term, -1)
 end
 
-function get_coefficient(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites},
-    c1::FermionOP, c2::FermionOP) where {T1,N,isSC,num_internal_degree,num_sites}
+function get_coefficient(h::Hamiltonian{T1,isSC},
+    c1::FermionOP, c2::FermionOP) where {T1,isSC}
+    num_internal_degree = get_num_internal_degree(h)
+    num_sites = get_num_sites(h)
+    N = get_N(h)
 
     ii = (c1.site - 1) * num_internal_degree + c1.internal_index
     jj = (c2.site - 1) * num_internal_degree + c2.internal_index
@@ -100,8 +118,11 @@ end
 
 Base.getindex(A::Hamiltonian, c1::FermionOP, c2::FermionOP) = get_coefficient(A, c1, c2)
 
-function Base.setindex!(h::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, v,
-    c1::FermionOP, c2::FermionOP) where {T1,N,isSC,num_internal_degree,num_sites}
+function Base.setindex!(h::Hamiltonian{T1,isSC}, v,
+    c1::FermionOP, c2::FermionOP) where {T1,isSC}
+    num_internal_degree = get_num_internal_degree(h)
+    num_sites = get_num_sites(h)
+    N = get_N(h)
 
     ii = (c1.site - 1) * num_internal_degree + c1.internal_index
     jj = (c2.site - 1) * num_internal_degree + c2.internal_index
@@ -124,23 +145,26 @@ function Base.:*(A::Hamiltonian, x::AbstractVector)
 end
 
 #mul!(Y, A, B) -> Y
-function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,N,true,num_internal_degree,num_sites}, x::AbstractVector) where {T,N,num_internal_degree,num_sites}
+function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,true }, x::AbstractVector) where {T }
     mul!(y, A.matrix, x)
 end
 
-function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,N,false,num_internal_degree,num_sites}, x::AbstractVector) where {T,N,num_internal_degree,num_sites}
+function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,false }, x::AbstractVector) where {T }
     mul!(y, A.matrix, x)
 end
 
 #  mul!(C, A, B, α, β) -> C
 #A B α + C β
-function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,N,true,num_internal_degree,num_sites}, x::AbstractVector, α::Number, β::Number) where {T,N,num_internal_degree,num_sites}
+function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,true }, x::AbstractVector, α::Number, β::Number) where {T }
     mul!(y, A.matrix, x, α, β)
 
 end
 
 
-function Base.display(h::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}) where {T,N,num_internal_degree,num_sites,isSC}
+function Base.display(h::Hamiltonian{T,isSC}) where {T,isSC}
+    num_internal_degree = get_num_internal_degree(h)
+    num_sites = get_num_sites(h)
+    N = get_N(h)
     println("---------------------------------")
     println("Hamiltonian: ")
     println("Num. of sites: $(num_sites)")
@@ -154,7 +178,10 @@ function Base.display(h::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}) wh
     println("---------------------------------")
 end
 
-function display_quadratic(ham::Hamiltonian{T,N,true,num_internal_degree,num_sites}) where {T,N,num_internal_degree,num_sites}
+function display_quadratic(ham::Hamiltonian{T,true }) where {T }
+    num_internal_degree = get_num_internal_degree(ham)
+    num_sites = get_num_sites(ham)
+    N = get_N(ham)
     cdagcstring = ""
     for j = 1:2N
         if j <= N
@@ -207,7 +234,10 @@ function display_quadratic(ham::Hamiltonian{T,N,true,num_internal_degree,num_sit
 end
 
 
-function display_quadratic(ham::Hamiltonian{T,N,false,num_internal_degree,num_sites}) where {T,N,num_internal_degree,num_sites}
+function display_quadratic(ham::Hamiltonian{T,false }) where {T }
+    num_internal_degree = get_num_internal_degree(ham)
+    num_sites = get_num_sites(ham)
+    N = get_N(ham)    
     cdagcstring = ""
     for j = 1:N
         jinternal = (j - 1) % num_internal_degree + 1
@@ -257,13 +287,18 @@ function indexer_y_2D(i, Nx)
     return div(i - 1, Nx) + 1
 end
 
-function make_X(ham::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}, Nx) where {T,N,isSC,num_internal_degree,num_sites}
+function make_X(ham::Hamiltonian{T,isSC}, Nx) where {T,isSC}
     X = make_X(ham, Nx, indexer_x_2D)
     return X
 end
 
-function make_X(ham::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}, Nx, indexer_x) where {T,N,isSC,num_internal_degree,num_sites}
-    X = zero(ham.matrix)
+function make_X(ham::Hamiltonian{T,isSC}, Nx, indexer_x) where {T,isSC}
+    num_internal_degree = get_num_internal_degree(ham)
+    num_sites = get_num_sites(ham)
+    N = get_N(ham)
+
+    dim = get_dim(ham)
+    X = spzeros(eltype(ham.matrix),dim,dim)
     for i = 1:num_sites
         ix = indexer_x(i, Nx)
         for i_i = 1:num_internal_degree
@@ -279,13 +314,18 @@ function make_X(ham::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}, Nx, in
     return X
 end
 
-function make_Y(ham::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}, Nx) where {T,N,isSC,num_internal_degree,num_sites}
+function make_Y(ham::Hamiltonian{T,isSC}, Nx) where {T,isSC}
     Y = make_Y(ham, Nx, indexer_y_2D)
     return Y
 end
 
-function make_Y(ham::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}, Nx, indexer_y) where {T,N,isSC,num_internal_degree,num_sites}
-    Y = zero(ham.matrix)
+function make_Y(ham::Hamiltonian{T,isSC}, Nx, indexer_y) where {T,isSC}
+    num_internal_degree = get_num_internal_degree(ham)
+    num_sites = get_num_sites(ham)
+    N = get_N(ham)
+
+    dim = get_dim(ham)
+    Y = spzeros(eltype(ham.matrix),dim,dim)
     for i = 1:num_sites
         iy = indexer_y(i, Nx)
         for i_i = 1:num_internal_degree

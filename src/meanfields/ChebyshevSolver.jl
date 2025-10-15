@@ -127,7 +127,7 @@ function solve(cheby::ChebyshevSolver{false}, A::AbstractMatrix{T}, i, j) where 
 
 end
 
-function solve(cheby::ChebyshevSolver{false}, A::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}, i, j) where {T,N,isSC,num_internal_degree,num_sites}
+function solve(cheby::ChebyshevSolver{false}, A::Hamiltonian{T,isSC}, i, j) where {T,isSC}
     _, Nt = size(A)
     x = zeros(T, Nt)
     vec_a = calc_polynomials(A.matrix, x, i, j; nc=cheby.nmax)
@@ -149,7 +149,7 @@ function solve(cheby::ChebyshevSolver{false}, A::Hamiltonian{T,N,isSC,num_intern
 
 end
 
-function solve(cheby::ChebyshevSolver{true}, A::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}, i, j) where {T,N,isSC,num_internal_degree,num_sites}
+function solve(cheby::ChebyshevSolver{true}, A::Hamiltonian{T,isSC}, i, j) where {T,isSC}
     _, Nt = size(A)
     x = LKvector(T, Nt, cheby.LKeps)
     #x = zeros(T, N)
