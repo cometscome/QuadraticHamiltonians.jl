@@ -47,7 +47,7 @@ function Hamiltonian(matrix::AbstractMatrix, num_sites; num_internal_degree=1)
     end
     T = eltype(matrix)
     N = num_sites * num_internal_degree
-    return Hamiltonian{T,isSC}(matrixSP,N,num_internal_degree,num_sites)
+    return Hamiltonian{T,isSC}(matrixSP, N, num_internal_degree, num_sites)
 end
 
 function Hamiltonian(T::DataType, num_sites; num_internal_degree=1, isSC=false)
@@ -58,7 +58,7 @@ function Hamiltonian(T::DataType, num_sites; num_internal_degree=1, isSC=false)
         matrix = spzeros(T, N, N)
     end
 
-    return Hamiltonian{T,isSC}(matrix,N,num_internal_degree ,num_sites)
+    return Hamiltonian{T,isSC}(matrix, N, num_internal_degree, num_sites)
 end
 
 get_num_internal_degree(h::Hamiltonian) = h.num_internal_degree
@@ -71,7 +71,7 @@ function hamiltonian_plus(h::Hamiltonian{T1,isSC}, term::QuadraticOPs{T2}, sign:
     num_sites = get_num_sites(h)
     N = get_N(h)
 
-    
+
     for (i, operator) in enumerate(term.operators)
         c1 = operator[1]
         c2 = operator[2]
@@ -88,7 +88,7 @@ function hamiltonian_plus(h::Hamiltonian{T1,isSC}, term::QuadraticOPs{T2}, sign:
         end
         h.matrix[ii, jj] += sign * term.values[i]
     end
-    Hamiltonian{T1,isSC}(h.matrix,N,num_internal_degree,num_sites)
+    Hamiltonian{T1,isSC}(h.matrix, N, num_internal_degree, num_sites)
 end
 
 function Base.:+(h::Hamiltonian{T1,isSC}, term::QuadraticOPs{T2}) where {T1,T2,isSC}
@@ -145,17 +145,17 @@ function Base.:*(A::Hamiltonian, x::AbstractVector)
 end
 
 #mul!(Y, A, B) -> Y
-function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,true }, x::AbstractVector) where {T }
+function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,true}, x::AbstractVector) where {T}
     mul!(y, A.matrix, x)
 end
 
-function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,false }, x::AbstractVector) where {T }
+function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,false}, x::AbstractVector) where {T}
     mul!(y, A.matrix, x)
 end
 
 #  mul!(C, A, B, α, β) -> C
 #A B α + C β
-function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,true }, x::AbstractVector, α::Number, β::Number) where {T }
+function LinearAlgebra.mul!(y::AbstractVector, A::Hamiltonian{T,true}, x::AbstractVector, α::Number, β::Number) where {T}
     mul!(y, A.matrix, x, α, β)
 
 end
@@ -178,7 +178,7 @@ function Base.display(h::Hamiltonian{T,isSC}) where {T,isSC}
     println("---------------------------------")
 end
 
-function display_quadratic(ham::Hamiltonian{T,true }) where {T }
+function display_quadratic(ham::Hamiltonian{T,true}) where {T}
     num_internal_degree = get_num_internal_degree(ham)
     num_sites = get_num_sites(ham)
     N = get_N(ham)
@@ -234,10 +234,10 @@ function display_quadratic(ham::Hamiltonian{T,true }) where {T }
 end
 
 
-function display_quadratic(ham::Hamiltonian{T,false }) where {T }
+function display_quadratic(ham::Hamiltonian{T,false}) where {T}
     num_internal_degree = get_num_internal_degree(ham)
     num_sites = get_num_sites(ham)
-    N = get_N(ham)    
+    N = get_N(ham)
     cdagcstring = ""
     for j = 1:N
         jinternal = (j - 1) % num_internal_degree + 1
@@ -298,7 +298,7 @@ function make_X(ham::Hamiltonian{T,isSC}, Nx, indexer_x) where {T,isSC}
     N = get_N(ham)
 
     dim = get_dim(ham)
-    X = spzeros(eltype(ham.matrix),dim,dim)
+    X = spzeros(eltype(ham.matrix), dim, dim)
     for i = 1:num_sites
         ix = indexer_x(i, Nx)
         for i_i = 1:num_internal_degree
@@ -325,7 +325,7 @@ function make_Y(ham::Hamiltonian{T,isSC}, Nx, indexer_y) where {T,isSC}
     N = get_N(ham)
 
     dim = get_dim(ham)
-    Y = spzeros(eltype(ham.matrix),dim,dim)
+    Y = spzeros(eltype(ham.matrix), dim, dim)
     for i = 1:num_sites
         iy = indexer_y(i, Nx)
         for i_i = 1:num_internal_degree

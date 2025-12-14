@@ -668,10 +668,10 @@ end
 
 @testset "QuadraticHamiltonians.jl" begin
     # Write your tests here.
-    #test()
-    #test2()
-    #test3()
+    test()
+    test2()
+    test3()
     ##test4()
-    #test5()
-    testTSC2()
+    test5()
+    #testTSC2()
 end
