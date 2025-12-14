@@ -5,7 +5,7 @@ struct Projector{M,H}
 end
 export Projector
 
-function Projector(ham::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, ; method="Exact", kargs...) where {T1,N,isSC,num_internal_degree,num_sites}
+function Projector(ham::Hamiltonian{T1,isSC}, ; method="Exact", kargs...) where {T1,isSC}
     if method == "Exact"
         println("The exact diagonalization method is used")
         exact = ExactProjector(ham)
@@ -57,10 +57,15 @@ function Projector(ham::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, ; 
         end
 
 
+        if :eps in keys(kargs)
+            eps = values(kargs).eps
+        else
+            eps = 1e-14
+        end
 
 
 
-        p = ContourProjector(Emin, α, Nq)
+        p = ContourProjector(Emin, α, Nq,eps)
         return Projector{typeof(p),typeof(ham)}(p, ham)
     else
         error("method $method is not supported yet")
@@ -71,7 +76,7 @@ struct ExactProjector{T1,T2}
     eigenvalues::Vector{T1}
     eigenvectors::Matrix{T2}
 
-    function ExactProjector(ham::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}) where {T1,N,isSC,num_internal_degree,num_sites}
+    function ExactProjector(ham::Hamiltonian{T1,isSC}) where {T1,isSC}
         evals, evecs = eigen(Matrix(ham.matrix))
         return new{eltype(evals),eltype(evecs)}(evals, evecs)
     end
@@ -127,11 +132,16 @@ end
 
 
 
-function make_C(p::Projector{M,H}, isite, Nx; debugmode=false) where {M,T,N,isSC,num_internal_degree,num_sites,H<:Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}
+function make_C(p::Projector{M,H}, isite, Nx; debugmode=false) where {M,T,isSC,H<:Hamiltonian{T,isSC}}
     X = make_X(p.hamiltonian, Nx)
     Y = make_Y(p.hamiltonian, Nx)
     n = get_dim(p.hamiltonian)
+    ham = p.hamiltonian
     e = zeros(T, n)
+    num_internal_degree = get_num_internal_degree(ham)
+    num_sites = get_num_sites(ham)
+    N = get_N(ham)
+
 
 
     if debugmode
@@ -165,16 +175,17 @@ function make_C(p::Projector{M,H}, isite, Nx; debugmode=false) where {M,T,N,isSC
         Ci = -4pi * imag(tempvector1[i])
         C += Ci
         #println(Ci)
-
-        e .= 0
-        e[i+num_internal_degree*num_sites] = 1
-        apply_Q!(p, tempvector1, e)
-        mul!(tempvector2, Y, tempvector1)
-        apply_P!(p, tempvector1, tempvector2)
-        mul!(tempvector2, X, tempvector1)
-        apply_Q!(p, tempvector1, tempvector2)
-        Ci = -4pi * imag(tempvector1[i+num_internal_degree*num_sites])
-        C += Ci
+        if isSC
+            e .= 0
+            e[i+num_internal_degree*num_sites] = 1
+            apply_Q!(p, tempvector1, e)
+            mul!(tempvector2, Y, tempvector1)
+            apply_P!(p, tempvector1, tempvector2)
+            mul!(tempvector2, X, tempvector1)
+            apply_Q!(p, tempvector1, tempvector2)
+            Ci = -4pi * imag(tempvector1[i+num_internal_degree*num_sites])
+            C += Ci
+        end
 
         #println(Ci)
 

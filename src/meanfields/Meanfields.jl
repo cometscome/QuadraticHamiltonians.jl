@@ -5,7 +5,7 @@ struct Meanfields_solver{M,H}
     hamiltonian::H
 end
 
-function Meanfields_solver(ham::Hamiltonian{T1,N,isSC,num_internal_degree,num_sites}, T, ; method="RSCG", kargs...) where {T1,N,isSC,num_internal_degree,num_sites}
+function Meanfields_solver(ham::Hamiltonian{T1,isSC}, T, ; method="RSCG", kargs...) where {T1,isSC}
     if method == "RSCG"
         println("The solver is the RSCG")
         rscg = RSCGSolver(T; kargs...)
@@ -35,13 +35,13 @@ function Meanfields_solver(ham::Hamiltonian{T1,N,isSC,num_internal_degree,num_si
     end
 end
 
-function get_hamiltonian(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}) where {M<:RSCGSolver,T,N,isSC,
-    num_internal_degree,num_sites}
+function get_hamiltonian(m::Meanfields_solver{M,Hamiltonian{T,isSC}}) where {M<:RSCGSolver,T,isSC,
+    }
     return m.hamiltonian
 end
 
-function get_hamiltonian(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}) where {M<:ChebyshevSolver,T,N,isSC,
-    num_internal_degree,num_sites}
+function get_hamiltonian(m::Meanfields_solver{M,Hamiltonian{T,isSC}}) where {M<:ChebyshevSolver,T,isSC,
+    }
     ham = deepcopy(m.hamiltonian)
     ham.matrix .*= m.method.aa
     for i = 1:N
@@ -51,8 +51,8 @@ function get_hamiltonian(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_interna
 end
 export get_hamiltonian
 
-function calc_meanfields(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}, c1::FermionOP, c2::FermionOP) where {M,T,N,isSC,
-    num_internal_degree,num_sites}
+function calc_meanfields(m::Meanfields_solver{M,Hamiltonian{T,isSC}}, c1::FermionOP, c2::FermionOP) where {M,T,isSC,
+    }
     ham = m.hamiltonian
     ii = (c1.site - 1) * num_internal_degree + c1.internal_index
     jj = (c2.site - 1) * num_internal_degree + c2.internal_index
@@ -67,16 +67,16 @@ function calc_meanfields(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_interna
     return Gij0
 end
 
-function calc_meanfields(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}, i, j) where {M,T,N,isSC,
-    num_internal_degree,num_sites}
+function calc_meanfields(m::Meanfields_solver{M,Hamiltonian{T,isSC}}, i, j) where {M,T,isSC,
+    }
     Gij0 = solve(m.method, m.hamiltonian, i, j)
     return Gij0
 end
 
 
 
-function calc_greenfunction(ham::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}, zs::Vector{T2}, c1::FermionOP, c2::FermionOP) where {T,N,isSC,
-    num_internal_degree,num_sites,T2<:Number}
+function calc_greenfunction(ham::Hamiltonian{T,isSC}, zs::Vector{T2}, c1::FermionOP, c2::FermionOP) where {T,isSC,
+    T2<:Number}
     ii = (c1.site - 1) * num_internal_degree + c1.internal_index
     jj = (c2.site - 1) * num_internal_degree + c2.internal_index
     if isSC
@@ -89,15 +89,15 @@ function calc_greenfunction(ham::Hamiltonian{T,N,isSC,num_internal_degree,num_si
     return Gijs
 end
 
-function calc_greenfunction(ham::Hamiltonian{T,N,isSC,num_internal_degree,num_sites}, z::Number, c1::FermionOP, c2::FermionOP) where {T,N,isSC,
-    num_internal_degree,num_sites}
+function calc_greenfunction(ham::Hamiltonian{T,isSC}, z::Number, c1::FermionOP, c2::FermionOP) where {T,isSC,
+    }
     Gij = calc_greenfunction(ham, [z], c1, c2)[1]
     return Gij
 end
 
 
-function update_hamiltonian!(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}, value, c1::FermionOP, c2::FermionOP) where {M<:RSCGSolver,T,N,isSC,
-    num_internal_degree,num_sites}
+function update_hamiltonian!(m::Meanfields_solver{M,Hamiltonian{T,isSC}}, value, c1::FermionOP, c2::FermionOP) where {M<:RSCGSolver,T,isSC,
+    }
 
     ii = (c1.site - 1) * num_internal_degree + c1.internal_index
     jj = (c2.site - 1) * num_internal_degree + c2.internal_index
@@ -111,7 +111,7 @@ function update_hamiltonian!(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_int
     m.hamiltonian.matrix[ii, jj] = value
 end
 
-function update_hamiltonian!(m::Meanfields_solver{M,Hamiltonian{T,N,isSC,num_internal_degree,num_sites}}, value, c1::FermionOP, c2::FermionOP) where {M<:ChebyshevSolver,T,N,isSC,num_internal_degree,num_sites}
+function update_hamiltonian!(m::Meanfields_solver{M,Hamiltonian{T,isSC}}, value, c1::FermionOP, c2::FermionOP) where {M<:ChebyshevSolver,T,isSC}
 
     ii = (c1.site - 1) * num_internal_degree + c1.internal_index
     jj = (c2.site - 1) * num_internal_degree + c2.internal_index

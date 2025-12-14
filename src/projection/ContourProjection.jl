@@ -7,8 +7,9 @@ struct ContourProjector
     vec_w::Vector{ComplexF64} #weights
     vec_zP::Vector{ComplexF64} #frequencies
     vec_zQ::Vector{ComplexF64} #frequencies
+    eps::Float64
 
-    function ContourProjector(Emin, α, Nq)
+    function ContourProjector(Emin, α, Nq,eps)
         ρ = abs(Emin / 2)
         γ = Emin / 2
 
@@ -22,13 +23,13 @@ struct ContourProjector
             vec_zQ[j] = -γ + ρ * (cos(θj) + im * α * sin(θj))
             vec_w[j] = α * cos(θj) + im * sin(θj)
         end
-        return new(α, ρ, γ, Nq, vec_w, vec_zP, vec_zQ)
+        return new(α, ρ, γ, Nq, vec_w, vec_zP, vec_zQ,eps)
     end
 end
 
 function apply_P!(projector::Projector{M,H}, Px, x, ϵ=0.0) where {M<:ContourProjector,H}
     method = projector.method!
-    vec_x = greensfunctions_col(method.vec_zP, projector.hamiltonian.matrix, x, eps=1e-14)
+    vec_x = greensfunctions_col(method.vec_zP, projector.hamiltonian.matrix, x, eps=method.eps)
 
     dim = get_dim(projector.hamiltonian)
     Px .= 0
@@ -41,7 +42,7 @@ end
 
 function apply_Q!(projector::Projector{M,H}, Px, x, ϵ=0.0) where {M<:ContourProjector,H}
     method = projector.method!
-    vec_x = greensfunctions_col(method.vec_zQ, projector.hamiltonian.matrix, x, eps=1e-14)
+    vec_x = greensfunctions_col(method.vec_zQ, projector.hamiltonian.matrix, x, eps=method.eps)
 
     dim = get_dim(projector.hamiltonian)
     Px .= 0
