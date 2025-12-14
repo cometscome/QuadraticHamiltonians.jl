@@ -214,6 +214,52 @@ function make_Htsc_sc(Nx, Ny, μ, Δ, BC, h, α)
     return H
 end
 
+function testTSC2()
+    μ = 3.5
+    Δ0 = 1#0.35
+
+
+    T = 0.01
+    U = -5.6
+    h = 2
+    α = 1
+
+    Nxs = [16, 20, 24, 30, 32, 36, 40, 44, 48, 52, 56, 60, 64, 70, 76, 80, 82, 90, 100, 120, 128, 160, 320]
+
+    isxPBC = false
+    isyPBC = false
+    num_internal_degree = 2
+
+
+
+    fp = open("NxdepNq100.txt", "w")
+    for Nx in Nxs
+        Ny = Nx
+        ix = Nx ÷ 2
+        iy = Ny ÷ 2
+        i = (iy - 1) * Nx + ix
+        Δs = Δ0 * ones(Nx * Ny)
+        Δsnew = similar(Δs)
+        ham = make_TSC_hamiltonian(Nx, Ny, μ, Δs, h, α, isxPBC, isyPBC)
+        method = "Contour"
+        projector = Projector(ham; method, Nq=100)
+        method = "Exact"
+        projector2 = Projector(ham; method, Nq=100)
+
+        C = real(make_C(projector, i, Nx))
+        C2 = real(make_C(projector2, i, Nx))
+
+        t1 = @elapsed real(make_C(projector, i, Nx))
+        t2 = @elapsed real(make_C(projector2, i, Nx))
+        println("$Nx $C $C2 $(abs(C-C2)/abs(C)) $t1 $t2")
+        println(fp, "$Nx $C $C2 $(abs(C-C2)/abs(C)) $t1")
+
+    end
+    close(fp)
+
+
+end
+
 
 function testTSC()
     Nx = 16 * 2
@@ -231,9 +277,9 @@ function testTSC()
     isyPBC = false
     BC = "OBC"
     num_internal_degree = 2
-    H = make_Htsc_sc(Nx, Ny, μ, Δ0 * ones(Nx, Ny), BC, h, α)
-    ham = Hamiltonian(H, Nx * Ny; num_internal_degree)
-    #ham = make_TSC_hamiltonian(Nx, Ny, μ, Δs, h, α, isxPBC, isyPBC)
+    #H = make_Htsc_sc(Nx, Ny, μ, Δ0 * ones(Nx, Ny), BC, h, α)
+    #ham = Hamiltonian(H, Nx * Ny; num_internal_degree)
+    ham = make_TSC_hamiltonian(Nx, Ny, μ, Δs, h, α, isxPBC, isyPBC)
 
     #diffH = H - ham.matrix
     #display(diffH)
@@ -627,5 +673,5 @@ end
     #test3()
     ##test4()
     #test5()
-    testTSC()
+    testTSC2()
 end

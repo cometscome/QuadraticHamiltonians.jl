@@ -23,7 +23,7 @@ KrylovKit = "0.6, 0.7"
 QuadGK = "2"
 RSCG = "0.1"
 SparseIR = "1.1.4"
-julia = "1.9, 1.10, 1.11"
+julia = "1.9, 1.10, 1.11,1.12"
 
 [extras]
 #JACC = "0979c8fe-16a4-4796-9b82-89a9f10403ea"
