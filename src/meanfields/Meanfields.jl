@@ -78,7 +78,7 @@ end
 
 function calc_greenfunction(ham::Hamiltonian{T,isSC}, zs::Vector{T2}, c1::FermionOP, c2::FermionOP) where {T,isSC,
     T2<:Number}
-    ham = m.hamiltonian
+    #ham = m.hamiltonian
     N = ham.N
     ii = (c1.site - 1) * ham.num_internal_degree + c1.internal_index
     jj = (c2.site - 1) * ham.num_internal_degree + c2.internal_index
