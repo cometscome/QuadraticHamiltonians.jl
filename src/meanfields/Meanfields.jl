@@ -6,6 +6,7 @@ struct Meanfields_solver{M,H}
 end
 
 function Meanfields_solver(ham::Hamiltonian{T1,isSC}, T, ; method="RSCG", kargs...) where {T1,isSC}
+    N = ham.N
     if method == "RSCG"
         println("The solver is the RSCG")
         rscg = RSCGSolver(T; kargs...)
@@ -43,6 +44,7 @@ end
 function get_hamiltonian(m::Meanfields_solver{M,Hamiltonian{T,isSC}}) where {M<:ChebyshevSolver,T,isSC,
 }
     ham = deepcopy(m.hamiltonian)
+    N = ham.N
     ham.matrix .*= m.method.aa
     for i = 1:N
         ham.matrix[i, i] -= m.method.bb
