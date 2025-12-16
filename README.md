@@ -1063,7 +1063,8 @@ num. of Matsubara freqs. 40
 ```
 
 
-# Local density of states around a vortex in 2D s-wave superconductor
+# Other examples
+##  Local density of states around a vortex in 2D s-wave superconductor
 ```julia
 using QuadraticHamiltonians
 using Plots
