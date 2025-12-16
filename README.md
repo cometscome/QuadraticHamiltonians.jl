@@ -1129,3 +1129,5 @@ end
 main()
 ```
 
+<img width="600" height="400" alt="ldosv" src="https://github.com/user-attachments/assets/825b8ea5-09d8-46c8-a8a8-707995578551" />
+
